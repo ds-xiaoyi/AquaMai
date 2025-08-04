@@ -93,7 +93,6 @@
     <Reference Include="UnityEngine.SubstanceModule" />
     <Reference Include="UnityEngine.TerrainModule" />
     <Reference Include="UnityEngine.TerrainPhysicsModule" />
-    <Reference Include="UnityEngine.TextCoreModule" />
     <Reference Include="UnityEngine.TextRenderingModule" />
     <Reference Include="UnityEngine.TilemapModule" />
     <Reference Include="UnityEngine.Timeline" />

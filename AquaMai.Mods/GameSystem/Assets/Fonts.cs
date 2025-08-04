@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using AquaMai.Config.Attributes;
 using AquaMai.Core.Helpers;
 using HarmonyLib;
@@ -54,11 +53,10 @@ public class Fonts
                 return font;
             })
             .Where(f => f != null);
-        var CreateFontAsset = typeof(TMP_FontAsset).GetMethods(BindingFlags.Public | BindingFlags.Static).First(it => it.Name == "CreateFontAsset" && it.GetParameters().Length > 2);
         fontAssets = fonts
-            .Select(f => (TMPro.TMP_FontAsset)CreateFontAsset.Invoke(null, [f, 90, 9, 4165, 8192, 8192, AtlasPopulationMode.Dynamic]))
+            .Select(f => TMP_FontAsset.CreateFontAsset(f, 90, 9, GlyphRenderMode.SDFAA, 8192, 8192))
             .ToList();
-
+        
         fontAssets.ForEach(f => f.ReadFontAssetDefinition());
 
         if (fontAssets.Count == 0)

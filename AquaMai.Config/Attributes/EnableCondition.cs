@@ -16,7 +16,7 @@ public class EnableCondition(
     Type referenceType,
     string referenceMember,
     EnableConditionOperator @operator,
-    object rightSideValue) : Attribute
+    object rightSideValue)
 {
     public Type ReferenceType { get; } = referenceType;
     public string ReferenceMember { get; } = referenceMember;

@@ -30,6 +30,9 @@ public class ScreenPositionAdjust
     private static Transform[] images = new Transform[4];
     private static Camera[] cameras = new Camera[4];
     private static RenderTexture[] renderTextures = new RenderTexture[4];
+    private static Transform[] mouseTouchPanels = new Transform[2];
+
+    private static readonly Vector3 mouseTouchPanelsDelta = new Vector3(0, (1920 - 1080) / 2f, 0);
 
     /// <summary>
     /// 避免一帧延迟
@@ -127,6 +130,8 @@ public class ScreenPositionAdjust
                         PlayerPrefs.SetFloat($"AquaMaiScreenPositionAdjust-y:{i}", offsetY[i]);
                     }
                     PlayerPrefs.Save();
+                    mouseTouchPanels[0].position = images[0].position + mouseTouchPanelsDelta;
+                    mouseTouchPanels[1].position = images[2].position + mouseTouchPanelsDelta;
                     return;
                 }
             }
@@ -162,69 +167,83 @@ public class ScreenPositionAdjust
         }
     }
 
-    public static IEnumerable<MethodBase> TargetMethods()
+    [HarmonyPatch]
+    public class Init
     {
-        var lateInitialize = AccessTools.Method(typeof(Main.GameMain), "LateInitialize", [typeof(MonoBehaviour), typeof(Transform), typeof(Transform)]);
-        if (lateInitialize is not null) return [lateInitialize];
-        return [AccessTools.Method(typeof(Main.GameMain), "Initialize", [typeof(MonoBehaviour), typeof(Transform), typeof(Transform)])];
+        public static IEnumerable<MethodBase> TargetMethods()
+        {
+            return SinglePlayer.WhateverInitialize.TargetMethods();
+        }
+
+        public static void Prefix(Transform left, Transform right)
+        {
+            root = new GameObject("[AquaMai] ScreenPositionAdjust Display", [typeof(Canvas)]);
+            root.transform.position = new Vector3(11451, 19198, 0);
+            var canvas = root.GetComponent<Canvas>();
+            canvas.GetComponent<RectTransform>().sizeDelta = new Vector2(2160, 1920);
+            canvas.renderMode = RenderMode.WorldSpace;
+            root.AddComponent<CanvasScaler>();
+            root.AddComponent<GraphicRaycaster>();
+            root.AddComponent<DynamicRenderTextureResizer>();
+            root.AddComponent<AdjustController>();
+            Camera.main.gameObject.AddComponent<CameraUpdater>();
+            Camera.main.transform.position = new Vector3(ConfigLoader.Config.GetSectionState(typeof(SinglePlayer)).Enabled ? 11451 - 540 : 11451, 19198, -800);
+
+            var compactDelta = 0;
+            if (compactMode)
+            {
+                Camera.main.orthographicSize = 540 + 225;
+                // 960 - 540 - 225 = 195
+                compactDelta = 195;
+            }
+
+            // init camera
+            for (int i = 0; i < 4; i++)
+            {
+                var player = i < 2 ? "1P" : "2P";
+                var sub = i % 2 == 0 ? "Main" : "Sub";
+                var texture = new RenderTexture((int)(1080 * GetSizeFactor()), (int)((sub == "Main" ? 1080 : 450) * GetSizeFactor()), 24, RenderTextureFormat.RGB111110Float)
+                {
+                    useMipMap = false,
+                    autoGenerateMips = false,
+                    depth = 0,
+                    antiAliasing = 1,
+                };
+
+                var camera = new GameObject($"[AquaMai] ScreenPositionAdjust Camera {sub} {player}").AddComponent<Camera>();
+                camera.transform.parent = player == "1P" ? left : right;
+                camera.enabled = false;
+                camera.targetTexture = texture;
+                camera.cullingMask = Camera.main.cullingMask;
+                camera.backgroundColor = Color.black;
+                camera.orthographic = true;
+                camera.orthographicSize = sub == "Main" ? 540 : 225;
+                camera.transform.localPosition = new Vector3(0, sub == "Main" ? -420 : 735, -800);
+                cameras[i] = camera;
+
+                var image = new GameObject($"[AquaMai] ScreenPositionAdjust Image {sub} {player}").AddComponent<UnityEngine.UI.RawImage>();
+                image.transform.parent = root.transform;
+                image.texture = texture;
+                image.rectTransform.sizeDelta = new Vector2(1080, sub == "Main" ? 1080 : 450);
+                image.transform.localPosition = new Vector3(player == "1P" ? -540 : 540, sub == "Main" ? -420 + compactDelta : 735 - compactDelta, 0);
+                images[i] = image.transform;
+
+                offsetX[i] = PlayerPrefs.GetFloat($"AquaMaiScreenPositionAdjust-x:{i}", 0);
+                offsetY[i] = PlayerPrefs.GetFloat($"AquaMaiScreenPositionAdjust-y:{i}", 0);
+                images[i].localPosition += new Vector3(offsetX[i], offsetY[i], 0);
+            }
+
+            mouseTouchPanels[0] = left.Find("MouseTouchPanel");
+            mouseTouchPanels[1] = right.Find("MouseTouchPanel");
+            mouseTouchPanels[0].position = images[0].position + mouseTouchPanelsDelta;
+            mouseTouchPanels[1].position = images[2].position + mouseTouchPanelsDelta;
+        }
     }
 
-    public static void Prefix(Transform left, Transform right)
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(MouseTouchPanel), "Start")]
+    public static void FixTouchPanelPlayer(ref int ___PlayerID, MouseTouchPanel __instance)
     {
-        root = new GameObject("[AquaMai] ScreenPositionAdjust Display", [typeof(Canvas)]);
-        root.transform.position = new Vector3(11451, 19198, 0);
-        var canvas = root.GetComponent<Canvas>();
-        canvas.GetComponent<RectTransform>().sizeDelta = new Vector2(2160, 1920);
-        canvas.renderMode = RenderMode.WorldSpace;
-        root.AddComponent<CanvasScaler>();
-        root.AddComponent<GraphicRaycaster>();
-        root.AddComponent<DynamicRenderTextureResizer>();
-        root.AddComponent<AdjustController>();
-        Camera.main.gameObject.AddComponent<CameraUpdater>();
-        Camera.main.transform.position = new Vector3(ConfigLoader.Config.GetSectionState(typeof(SinglePlayer)).Enabled ? 11451 - 540 : 11451, 19198, -800);
-
-        var compactDelta = 0;
-        if (compactMode)
-        {
-            Camera.main.orthographicSize = 540 + 225;
-            // 960 - 540 - 225 = 195
-            compactDelta = 195;
-        }
-
-        // init camera
-        for (int i = 0; i < 4; i++)
-        {
-            var player = i < 2 ? "1P" : "2P";
-            var sub = i % 2 == 0 ? "Main" : "Sub";
-            var texture = new RenderTexture((int)(1080 * GetSizeFactor()), (int)((sub == "Main" ? 1080 : 450) * GetSizeFactor()), 24, RenderTextureFormat.RGB111110Float)
-            {
-                useMipMap = false,
-                autoGenerateMips = false,
-                depth = 0,
-                antiAliasing = 1,
-            };
-
-            var camera = new GameObject($"[AquaMai] ScreenPositionAdjust Camera {sub} {player}").AddComponent<Camera>();
-            camera.transform.parent = player == "1P" ? left : right;
-            camera.enabled = false;
-            camera.targetTexture = texture;
-            camera.cullingMask = Camera.main.cullingMask;
-            camera.backgroundColor = Color.black;
-            camera.orthographic = true;
-            camera.orthographicSize = sub == "Main" ? 540 : 225;
-            camera.transform.localPosition = new Vector3(0, sub == "Main" ? -420 : 735, -800);
-            cameras[i] = camera;
-
-            var image = new GameObject($"[AquaMai] ScreenPositionAdjust Image {sub} {player}").AddComponent<UnityEngine.UI.RawImage>();
-            image.transform.parent = root.transform;
-            image.texture = texture;
-            image.rectTransform.sizeDelta = new Vector2(1080, sub == "Main" ? 1080 : 450);
-            image.transform.localPosition = new Vector3(player == "1P" ? -540 : 540, sub == "Main" ? -420 + compactDelta : 735 - compactDelta, 0);
-            images[i] = image.transform;
-
-            offsetX[i] = PlayerPrefs.GetFloat($"AquaMaiScreenPositionAdjust-x:{i}", 0);
-            offsetY[i] = PlayerPrefs.GetFloat($"AquaMaiScreenPositionAdjust-y:{i}", 0);
-            images[i].localPosition += new Vector3(offsetX[i], offsetY[i], 0);
-        }
+        ___PlayerID = __instance.transform.parent.parent.name.Equals("LeftMonitor") ? 0 : 1;
     }
 }

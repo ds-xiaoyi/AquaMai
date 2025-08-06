@@ -3,13 +3,18 @@ using HarmonyLib;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using MelonLoader;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace AquaMai.Mods.GameSystem;
 
-public partial class SinglePlayer
+[ConfigSection(
+    defaultOn: true,
+    en: "Enable touch input with radius for a more realistic touchscreen experience.",
+    zh: "启用触摸输入和半径，以获得更真实的触摸屏体验")]
+public partial class ExteraMouseInput
 {
     [ConfigEntry(
         en: "Touch area radius size. Adjust according to the size of your finger, you can test in Test Mode.",
@@ -21,32 +26,26 @@ public partial class SinglePlayer
         zh: "显示触摸点（仅限触屏输入）")]
     public readonly static bool displayArea = false;
 
-    static RectTransform rectTransform;
-    static Canvas leftCanvas;
+    static RectTransform[] rectTransform = new RectTransform[2];
     static List<CustomCircleGraphic> circleGraphics = new List<CustomCircleGraphic>();
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(MouseTouchPanel), "Start")]
     public static void MouseTouchPanelStart(MouseTouchPanel __instance)
     {
-        if (!__instance.transform.parent.parent.name.Equals("LeftMonitor"))
-        {
-            return;
-        }
-        MelonLoader.MelonLogger.Msg("ExteraMouseInput: Start");
-        leftCanvas = __instance.transform.parent.GetComponent<Canvas>();
+        var player = __instance.transform.parent.parent.name.Equals("LeftMonitor") ? 0 : 1;
         UnityEngine.Object.Destroy(__instance.transform.parent.GetComponent<GraphicRaycaster>());
-        MeshButtonRaycaster radiusRaycaster = __instance.transform.parent.gameObject.AddComponent<MeshButtonRaycaster>();
-        rectTransform = __instance.GetComponent<RectTransform>();
+        __instance.transform.parent.gameObject.AddComponent<MeshButtonRaycaster>();
+        rectTransform[player] = __instance.GetComponent<RectTransform>();
 
-        if (displayArea)
+        if (displayArea && player == 0)
         {
             __instance.StartCoroutine(UpdateInputDisplay());
             circleGraphics = new List<CustomCircleGraphic>(10);
             for (int i = 0; i < 10; i++)
             {
                 GameObject go = new GameObject("CircleGraphic" + i);
-                go.transform.SetParent(rectTransform);
+                go.transform.SetParent(rectTransform[0]);
                 go.transform.localPosition = Vector3.zero;
                 go.transform.localRotation = Quaternion.identity;
                 go.transform.localScale = Vector3.one;
@@ -68,9 +67,9 @@ public partial class SinglePlayer
         for (int i = 0; i < customGraphic.vertex.Count; i++)
         {
             var localPos3 = new Vector3(customGraphic.vertex[i].x, customGraphic.vertex[i].y, 0f);
-            var rotatedPos3 = __instance.transform.localRotation * localPos3;//ApplyRot
+            var rotatedPos3 = __instance.transform.localRotation * localPos3;             //ApplyRot
             var scaledPos3 = Vector3.Scale(rotatedPos3, __instance.transform.localScale); // ApplyScale
-            var finalPos3 = __instance.transform.position + scaledPos3;//ApplyPos
+            var finalPos3 = __instance.transform.position + scaledPos3;                   //ApplyPos
 
             ___vertexArray[i] = RectTransformUtility.WorldToScreenPoint(
                 Camera.main,
@@ -97,7 +96,7 @@ public partial class SinglePlayer
                     Vector2 localPoint;
 
                     // 将屏幕点转换为本地空间
-                    RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform, touchPoint, Camera.main, out localPoint);
+                    RectTransformUtility.ScreenPointToLocalPointInRectangle(rectTransform[0], touchPoint, Camera.main, out localPoint);
                     circleGraphics[i].rectTransform.anchoredPosition = localPoint;
                     // 缩放半径
                     circleGraphics[i].radius = radius;
@@ -117,12 +116,23 @@ public partial class SinglePlayer
     [HarmonyPatch(typeof(MeshButton), "IsPointInPolygon", new Type[] { typeof(Vector2[]), typeof(Vector2) })]
     public static bool IsPointInPolygon(MeshButton __instance, Vector2[] polygon, Vector2 point, ref bool __result)
     {
+        var player = __instance.transform.parent.parent.parent.name.Equals("LeftMonitor") ? 0 : 1;
+
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
-            rectTransform,
+            rectTransform[player],
             point,
             Camera.main,
             out var localInputPoint
         );
+
+        // 防止触发另外半边的
+        if (localInputPoint.x * 2 is > 1080 or < -1080)
+        {
+            __result = false;
+            return false;
+        }
+
+        MelonLogger.Msg($"IsPointInPolygon, {localInputPoint}");
 
         bool isInsidePolygon = false;
         //检查是否在多边形顶点内
@@ -154,6 +164,7 @@ public partial class SinglePlayer
     }
 
     #region 计算
+
     /// <summary>
     /// 检查点是否在多边形的顶点内
     /// </summary>
@@ -245,11 +256,14 @@ public partial class SinglePlayer
         Vector2 projection = segmentStart + t * segment;
         return Vector2.Distance(point, projection);
     }
+
     #endregion
+
     #region ⚪
+
     public class CustomCircleGraphic : Graphic
     {
-        public float radius = 50f; // 圆的半径
+        public float radius = 50f;    // 圆的半径
         public int segmentCount = 64; // 圆的细分段数
         protected override void OnPopulateMesh(VertexHelper vh)
         {
@@ -279,8 +293,8 @@ public partial class SinglePlayer
                 if (i > 0)
                 {
                     // 形成三角形的索引
-                    indices.Add(0); // 圆心
-                    indices.Add(i); // 当前点
+                    indices.Add(0);     // 圆心
+                    indices.Add(i);     // 当前点
                     indices.Add(i - 1); // 上一个点
                 }
             }
@@ -290,7 +304,6 @@ public partial class SinglePlayer
     }
     public class MeshButtonRaycaster : BaseRaycaster
     {
-
         public override Camera eventCamera => Camera.main;
 
         MeshButton[] meshButtons = new MeshButton[0];
@@ -313,5 +326,6 @@ public partial class SinglePlayer
             }
         }
     }
+
     #endregion
 }

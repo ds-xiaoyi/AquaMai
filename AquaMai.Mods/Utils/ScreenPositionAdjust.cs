@@ -13,11 +13,18 @@ using UnityEngine.UI;
 
 namespace AquaMai.Mods.Utils;
 
-[ConfigSection(zh: """
-                   屏幕位置调整。适用于手台对不齐的情况，可以分别调整每个屏幕区域的位置
-                   在游戏中按键开启调整模式
-                   目前开启后不支持使用鼠标模拟触摸
-                   """)]
+[ConfigSection(
+    zh: """
+        屏幕位置调整。适用于手台对不齐的情况，可以分别调整每个屏幕区域的位置
+        在游戏中按键开启调整模式
+        必须同时开启 ExteraMouseInput 才能使用鼠标模拟触摸
+        """,
+    en: """
+        Screen position adjustment. Suitable for cases where the screen are not aligned, allowing separate adjustments for each screen area.
+        Enter adjustment mode by pressing the key in-game.
+        ExteraMouseInput must be enabled to use mouse simulation for touch input.
+        """
+)]
 public class ScreenPositionAdjust
 {
     [ConfigEntry(zh: "上屏紧贴着下屏", en: "Top screen is tightly attached to the bottom screen")]

@@ -17,11 +17,13 @@ namespace AquaMai.Mods.Utils;
     zh: """
         屏幕位置调整。适用于手台对不齐的情况，可以分别调整每个屏幕区域的位置
         在游戏中按键开启调整模式
+        此功能会对性能产生一定影响
         必须同时开启 ExteraMouseInput 才能使用鼠标模拟触摸
         """,
     en: """
         Screen position adjustment. Suitable for cases where the screen are not aligned, allowing separate adjustments for each screen area.
         Enter adjustment mode by pressing the key in-game.
+        This feature may have a slight performance impact.
         ExteraMouseInput must be enabled to use mouse simulation for touch input.
         """
 )]

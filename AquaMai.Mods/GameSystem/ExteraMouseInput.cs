@@ -132,8 +132,6 @@ public partial class ExteraMouseInput
             return false;
         }
 
-        MelonLogger.Msg($"IsPointInPolygon, {localInputPoint}");
-
         bool isInsidePolygon = false;
         //检查是否在多边形顶点内
         isInsidePolygon = IsVertDistance(polygon, localInputPoint, radius);

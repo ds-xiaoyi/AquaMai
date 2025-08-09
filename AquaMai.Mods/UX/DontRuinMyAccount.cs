@@ -24,7 +24,7 @@ public class DontRuinMyAccount
 
     [HarmonyPatch(typeof(GameProcess), "OnUpdate")]
     [HarmonyPostfix]
-    public void OnUpdate()
+    public static void OnUpdate()
     {
         if (GameManager.IsInGame && GameManager.IsAutoPlay() && !ignoreScore)
         {

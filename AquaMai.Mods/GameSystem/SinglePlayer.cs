@@ -68,7 +68,7 @@ public partial class SinglePlayer
     [ConfigEntry(
         en: "Automatically skip the countdown when logging in with a card in single-player mode.",
         zh: "单人模式下刷卡登录直接进入下一个界面，无需跳过倒计时")]
-    public static bool autoSkip = true;
+    public static bool autoSkip = false;
 
     [EnableGameVersion(21500, noWarn: true)]
     [EnableIf(nameof(autoSkip))]

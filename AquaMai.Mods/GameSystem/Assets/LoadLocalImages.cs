@@ -325,7 +325,6 @@ public class LoadLocalImages
         var genres = Singleton<DataManager>.Instance.GetMusicGenres();
         foreach (var (id, genre) in genres)
         {
-            if (____genreSprite.GetValueOrDefault(id) is not null) continue;
             var filename = genre.FileName.ToLowerInvariant();
             var locPath = localAssetsContents.TryGetValue(filename, out var laPath) ? laPath : tabTitlePaths.GetValueOrDefault(filename);
             if (locPath is null) continue;
@@ -337,7 +336,6 @@ public class LoadLocalImages
         var versions = Singleton<DataManager>.Instance.GetMusicVersions();
         foreach (var (id, version) in versions)
         {
-            if (____versionSprite.GetValueOrDefault(id) is not null) continue;
             var filename = version.FileName.ToLowerInvariant();
             var locPath = localAssetsContents.TryGetValue(filename, out var laPath) ? laPath : tabTitlePaths.GetValueOrDefault(filename);
             if (locPath is null) continue;

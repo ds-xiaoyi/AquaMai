@@ -24,27 +24,34 @@ public class DisableTimeout
     private static readonly bool inGameStart = true;
 
     [ConfigEntry(
+        en: "Disable timer in PhotoEditProcess, not recommended.",
+        zh: "也移除 可以看一看游戏成绩哦 界面的倒计时，不推荐启用，会导致无法点击上传照片按钮")]
+    private static readonly bool inPhotoEditProcess = false;
+
+    [ConfigEntry(
         en: "Hide the timer display.",
         zh: "隐藏计时器")]
     private static readonly bool hideTimer = true;
 
-    private static bool CheckInGameStart()
+    private static bool ShouldNotEnable()
     {
-        if (inGameStart) return false;
+        if (inGameStart && inPhotoEditProcess) return false;
         var stackTrace = new StackTrace();
         var stackFrames = stackTrace.GetFrames();
         var names = stackFrames.Select(it => it.GetMethod().DeclaringType.Name).ToArray();
 # if DEBUG
         MelonLogger.Msg(names.Join());
 # endif
-        return names.Contains("EntryProcess") || names.Contains("ModeSelectProcess");
+        if (!inGameStart && (names.Contains("EntryProcess") || names.Contains("ModeSelectProcess"))) return true;
+        if (!inPhotoEditProcess && names.Contains("PhotoEditProcess")) return true;
+        return false;
     }
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(TimerController), "PrepareTimer")]
     public static void PrePrepareTimer(ref int second)
     {
-        if (CheckInGameStart()) return;
+        if (ShouldNotEnable()) return;
         second = 65535;
     }
 
@@ -53,7 +60,7 @@ public class DisableTimeout
     public static void PostPrepareTimer(TimerController __instance)
     {
         if (hideTimer) return;
-        if (CheckInGameStart()) return;
+        if (ShouldNotEnable()) return;
         Traverse.Create(__instance).Property<bool>("IsInfinity").Value = true;
     }
 
@@ -61,7 +68,7 @@ public class DisableTimeout
     [HarmonyPatch(typeof(CommonTimer), "SetVisible")]
     public static void CommonTimerSetVisible(ref bool isVisible)
     {
-        if (CheckInGameStart()) return;
+        if (ShouldNotEnable()) return;
         if (!hideTimer) return;
         isVisible = false;
     }
@@ -90,6 +97,7 @@ public class DisableTimeout
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(PhotoEditProcess), "MainMenuUpdate")]
+    [EnableIf(nameof(inPhotoEditProcess))]
     public static void PhotoEditProcess(PhotoEditMonitor[] ____monitors, PhotoEditProcess __instance)
     {
         if (!InputManager.GetMonitorButtonDown(InputManager.ButtonSetting.Button04)) return;

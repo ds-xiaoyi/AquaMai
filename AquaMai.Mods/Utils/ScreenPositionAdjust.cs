@@ -37,8 +37,8 @@ public class ScreenPositionAdjust
     private static GameObject root;
     // main1P sub1P main2P sub2P
     private static Transform[] images = new Transform[4];
-    private static Camera[] cameras = new Camera[4];
-    private static RenderTexture[] renderTextures = new RenderTexture[4];
+    private static Camera camera;
+    private static RenderTexture renderTexture;
     private static Transform[] mouseTouchPanels = new Transform[2];
 
     private static readonly Vector3 mouseTouchPanelsDelta = new Vector3(0, (1920 - 1080) / 2f, 0);
@@ -50,14 +50,11 @@ public class ScreenPositionAdjust
     {
         void OnPreRender()
         {
-            foreach (var camera in cameras)
+            if (camera == null)
             {
-                if (camera == null)
-                {
-                    continue;
-                }
-                camera.Render();
+                return;
             }
+            camera.Render();
         }
     }
 
@@ -86,15 +83,12 @@ public class ScreenPositionAdjust
             MelonLogger.Msg("[ScreenPositionAdjust] Screen height changed, resizing render textures.");
 #endif
             lastHeight = Screen.height;
-            for (int i = 0; i < renderTextures.Length; i++)
+            if (renderTexture != null)
             {
-                if (renderTextures[i] != null)
-                {
-                    renderTextures[i].Release();
-                    renderTextures[i].width = (int)(1080 * GetSizeFactor());
-                    renderTextures[i].height = (int)(((i % 2 == 0) ? 1080 : 450) * GetSizeFactor());
-                    renderTextures[i].Create();
-                }
+                renderTexture.Release();
+                renderTexture.width = (int)(1080 * 2 * GetSizeFactor());
+                renderTexture.height = (int)(compactMode ? Screen.height / (1080f + 450f) * 1920f : Screen.height);
+                renderTexture.Create();
             }
         }
     }
@@ -196,7 +190,6 @@ public class ScreenPositionAdjust
             root.AddComponent<DynamicRenderTextureResizer>();
             root.AddComponent<AdjustController>();
             Camera.main.gameObject.AddComponent<CameraUpdater>();
-            Camera.main.transform.position = new Vector3(ConfigLoader.Config.GetSectionState(typeof(SinglePlayer)).Enabled ? 11451 - 540 : 11451, 19198, -800);
 
             var compactDelta = 0;
             if (compactMode)
@@ -206,35 +199,41 @@ public class ScreenPositionAdjust
                 compactDelta = 195;
             }
 
-            // init camera
+            renderTexture = new RenderTexture((int)(1080 * 2 * GetSizeFactor()), (int)(compactMode ? Screen.height / (1080f + 450f) * 1920f : Screen.height), 24, RenderTextureFormat.RGB111110Float)
+            {
+                useMipMap = false,
+                autoGenerateMips = false,
+                depth = 0,
+                antiAliasing = 1,
+            };
+
+            camera = new GameObject($"[AquaMai] ScreenPositionAdjust Camera").AddComponent<Camera>();
+            camera.transform.parent = root.transform;
+            camera.enabled = false;
+            camera.targetTexture = renderTexture;
+            camera.cullingMask = Camera.main.cullingMask;
+            camera.backgroundColor = Color.black;
+            camera.orthographic = true;
+            camera.orthographicSize = 960;
+            camera.transform.position = Camera.main.transform.position;
+            Camera.main.transform.position = new Vector3(ConfigLoader.Config.GetSectionState(typeof(SinglePlayer)).Enabled ? 11451 - 540 : 11451, 19198, -800);
+
             for (int i = 0; i < 4; i++)
             {
                 var player = i < 2 ? "1P" : "2P";
                 var sub = i % 2 == 0 ? "Main" : "Sub";
-                var texture = new RenderTexture((int)(1080 * GetSizeFactor()), (int)((sub == "Main" ? 1080 : 450) * GetSizeFactor()), 24, RenderTextureFormat.RGB111110Float)
-                {
-                    useMipMap = false,
-                    autoGenerateMips = false,
-                    depth = 0,
-                    antiAliasing = 1,
-                };
-
-                var camera = new GameObject($"[AquaMai] ScreenPositionAdjust Camera {sub} {player}").AddComponent<Camera>();
-                camera.transform.parent = player == "1P" ? left : right;
-                camera.enabled = false;
-                camera.targetTexture = texture;
-                camera.cullingMask = Camera.main.cullingMask;
-                camera.backgroundColor = Color.black;
-                camera.orthographic = true;
-                camera.orthographicSize = sub == "Main" ? 540 : 225;
-                camera.transform.localPosition = new Vector3(0, sub == "Main" ? -420 : 735, -800);
-                cameras[i] = camera;
 
                 var image = new GameObject($"[AquaMai] ScreenPositionAdjust Image {sub} {player}").AddComponent<UnityEngine.UI.RawImage>();
                 image.transform.parent = root.transform;
-                image.texture = texture;
+                image.texture = renderTexture;
                 image.rectTransform.sizeDelta = new Vector2(1080, sub == "Main" ? 1080 : 450);
                 image.transform.localPosition = new Vector3(player == "1P" ? -540 : 540, sub == "Main" ? -420 + compactDelta : 735 - compactDelta, 0);
+                image.uvRect = new Rect(
+                    player == "1P" ? 0 : 0.5f,
+                    sub == "Main" ? 0 : (1920 - 450) / 1920f,
+                    0.5f,
+                    sub == "Main" ? 1080f / 1920f : 450f / 1920f
+                );
                 images[i] = image.transform;
 
                 offsetX[i] = PlayerPrefs.GetFloat($"AquaMaiScreenPositionAdjust-x:{i}", 0);

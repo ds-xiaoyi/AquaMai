@@ -24,6 +24,7 @@ namespace AquaMai.Mods.Utils;
 public class MoveAnswerSound : IPlayerSettingsItem
 {
     private static float[] userSettings = [0, 0];
+    private static IPersistentStorage storage = new PlayerPrefsStorage();
 
     #region 设置界面注入
 
@@ -61,11 +62,11 @@ public class MoveAnswerSound : IPlayerSettingsItem
     [HarmonyPatch(typeof(MusicSelectProcess), nameof(MusicSelectProcess.OnStart))]
     public static void LoadSettings()
     {
-        for (int i = 0; i < 2; i++)
+        for (uint i = 0; i < 2; i++)
         {
             var userData = UserDataManager.Instance.GetUserData(i);
             if (!userData.IsEntry) continue;
-            userSettings[i] = PlayerPrefs.GetFloat($"AquaMaiMoveAnswerSound:{userData.AimeId.Value}", 0);
+            userSettings[i] = storage.GetFloat(i, "MoveAnswerSound", 0);
             MelonLogger.Msg($"玩家 {i} 的移动正解音设置为 {userSettings[i]} 毫秒");
         }
     }
@@ -74,11 +75,11 @@ public class MoveAnswerSound : IPlayerSettingsItem
     [HarmonyPatch(typeof(MusicSelectProcess), nameof(MusicSelectProcess.OnRelease))]
     public static void SaveSettings()
     {
-        for (int i = 0; i < 2; i++)
+        for (uint i = 0; i < 2; i++)
         {
             var userData = UserDataManager.Instance.GetUserData(i);
             if (!userData.IsEntry) continue;
-            PlayerPrefs.SetFloat($"AquaMaiMoveAnswerSound:{userData.AimeId.Value}", userSettings[i]);
+            storage.SetFloat(i, "MoveAnswerSound", userSettings[i]);
         }
 #if DEBUG
         MelonLogger.Msg($"移动正解音设置已保存");

@@ -1,5 +1,7 @@
 ﻿using System.Collections;
+using System.Linq;
 using AquaMai.Config.Attributes;
+using AquaMai.Core.Attributes;
 using AquaMai.Core.Helpers;
 using DB;
 using HarmonyLib;
@@ -9,6 +11,7 @@ using Monitor;
 using Monitor.ModeSelect;
 using Process;
 using Process.Information;
+using EnableConditionOperator = AquaMai.Core.Attributes.EnableConditionOperator;
 
 namespace AquaMai.Mods.Tweaks.TimeSaving;
 
@@ -17,6 +20,8 @@ namespace AquaMai.Mods.Tweaks.TimeSaving;
     zh: "登录完成后直接进入选歌界面")]
 public class EntryToMusicSelection
 {
+    [ConfigEntry(zh: "仅在游客模式启用", en: "Enable only in Guest Mode")]
+    private static readonly bool enableOnlyInGuestMode = false;
     /*
      * Highly experimental, may well break some stuff
      * Works by overriding the info screen (where it shows new events and stuff)
@@ -27,6 +32,11 @@ public class EntryToMusicSelection
     [HarmonyPatch(typeof(InformationProcess), "OnUpdate")]
     public static bool OnUpdate(InformationProcess __instance, ProcessDataContainer ___container)
     {
+        if (enableOnlyInGuestMode)
+        {
+            var userDatas = ((int[]) [0, 1]).Select(i => Singleton<UserDataManager>.Instance.GetUserData(i));
+            if (!userDatas.All(it => it.IsGuest())) return true;
+        }
         GameManager.SetMaxTrack();
         SharedInstances.GameMainObject.StartCoroutine(GraduallyIncreaseHeadphoneVolumeCoroutine());
         ___container.processManager.AddProcess(new MusicSelectProcess(___container));
@@ -35,6 +45,7 @@ public class EntryToMusicSelection
     }
 
     [HarmonyPrefix]
+    [EnableIf(nameof(enableOnlyInGuestMode), EnableConditionOperator.Equal, false)]
     [HarmonyPatch(typeof(MapResultMonitor), "Initialize")]
     public static void MapResultMonitorPreInitialize(int monIndex)
     {

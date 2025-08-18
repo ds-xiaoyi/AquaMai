@@ -10,6 +10,7 @@
   - GameSystem.TestProof
   - GameSettings.CreditConfig
   - Fancy.GamePlay.ExtendNotesPool
+  - Utils.MoveAnswerSound
 
 直读:
   - GameSystem.Assets.LoadAssetBundleWithoutManifest
@@ -53,12 +54,15 @@
   - Fancy.GamePlay.HideHanabi
   - Fancy.GamePlay.JudgeDisplay4B
   - Utils.DisplayTouchInGame
+  - UX.DontRuinMyAccount
 
 系统修改:
   - GameSystem.Window
   - Utils.ScreenPositionAdjust
   - GameSettings.JudgeAdjust
-  - Fancy.Triggers
+  - GameSystem.Sound
+  - GameSystem.CustomCameraId
+  - GameSystem.ExteraMouseInput
 
 调试工具:
   - Utils.AntiLag
@@ -82,13 +86,11 @@
   - Fancy.HideMask
   - GameSettings.ForceAsServer
   - GameSystem.RemoveEncryption
-  - GameSystem.Sound
   - GameSystem.TouchPanelBaudRate
-  - GameSystem.TouchPanelBaudRate
-  - GameSystem.CustomCameraId
   - GameSystem.OptionLoadFix
   - UX.ServerAnnouncement
   - Tweaks.SkipUserVersionCheck
+  - Fancy.Triggers
 
 过新过热:
   - Fancy.CustomTrackStartDiff
@@ -99,3 +101,4 @@
   - Fancy.GamePlay.RealisticRandomJudge
   - Fancy.GamePlay.TrackStartProcessTweak
   - Fancy.GamePlay.FixJudgeTouchHoldInNormalArea
+  - Fix.FixTrackNumDisplay

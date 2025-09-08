@@ -85,7 +85,6 @@ public static class DisplayTouchInGame
             return;
         prefab = targetMouseTouchPanel.gameObject;
         MelonLogger.Msg("[DisplayTouchInGame] RegisterMouseTouchPanel");
-        MelonLogger.Msg(prefab);
     }
 
     [HarmonyPostfix]
@@ -136,6 +135,11 @@ public static class DisplayTouchInGame
             Object.Destroy(touchPanel.GetComponent<MouseTouchPanel>());
             foreach (Transform item in touchPanel.transform)
             {
+                if (item.name.StartsWith("CircleGraphic"))
+                {
+                    Object.Destroy(item.gameObject);
+                    continue;
+                }
                 Object.Destroy(item.GetComponent<MeshButton>());
                 Object.Destroy(item.GetComponent<Collider>());
                 if (item.name.StartsWith("A"))

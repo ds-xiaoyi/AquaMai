@@ -2,7 +2,6 @@
 using AquaMai.Config.Attributes;
 using HarmonyLib;
 using Manager.UserDatas;
-using MelonLoader;
 
 namespace AquaMai.Mods.GameSettings;
 

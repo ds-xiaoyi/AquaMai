@@ -103,8 +103,6 @@ public class JudgeAdjust
                 _delayedTouchData[index].Dequeue();
             }
             
-            MelonLogger.Msg($"Queue length: {_delayedTouchData[index].Count} Data {inputData}");
-
             return ret;
         }
     }

@@ -57,7 +57,9 @@ public class CustomLogo
             var logo = segaLogo[UnityEngine.Random.Range(0, segaLogo.Count)];
             foreach (var monitor in ____monitors)
             {
-                monitor.transform.Find("Canvas/Main/SegaAllNet_LOGO/NUL_ADT_SegaAllNet_LOGO/SegaLogo").GetComponent<Image>().sprite = logo;
+                var go = monitor.transform.Find("Canvas/Main/SegaAllNet_LOGO/NUL_ADT_SegaAllNet_LOGO/SegaLogo") ??
+                    monitor.transform.Find("Canvas/Main/UI_ADV_SegaAllNet/NUL_all/SegaLogo");
+                go.GetComponent<Image>().sprite = logo;
             }
         }
 
@@ -66,7 +68,9 @@ public class CustomLogo
             var logo = allNetLogo[UnityEngine.Random.Range(0, allNetLogo.Count)];
             foreach (var monitor in ____monitors)
             {
-                monitor.transform.Find("Canvas/Main/SegaAllNet_LOGO/NUL_ADT_SegaAllNet_LOGO/AllNetLogo").GetComponent<Image>().sprite = logo;
+                var go = monitor.transform.Find("Canvas/Main/SegaAllNet_LOGO/NUL_ADT_SegaAllNet_LOGO/AllNetLogo") ??
+                    monitor.transform.Find("Canvas/Main/UI_ADV_SegaAllNet/NUL_all/AllNetLogo");
+                go.GetComponent<Image>().sprite = logo;
             }
         }
     }

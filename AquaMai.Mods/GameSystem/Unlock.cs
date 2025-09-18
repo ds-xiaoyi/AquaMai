@@ -323,15 +323,29 @@ public class Unlock
         en: "Enable all events.",
         zh: "启用所有的 “Events”"
     )]
-    private static readonly bool events = true;
+    private static readonly bool events = false;
+
+    [ConfigEntry(
+        en: "Do not unlock the following events. Leave it enabled if you don't know what this is.",
+        zh: "不解锁以下 Event。如果你不知道这是什么，请勿修改"
+    )]
+    private static readonly string eventBlackList = "0,250926121";
+    private static HashSet<int> eventBlackListSet = null;
 
     [EnableIf(nameof(events))]
     [HarmonyPrefix]
     [HarmonyPatch(typeof(EventManager), "IsOpenEvent")]
     private static bool EnableAllEvent(ref bool __result, int eventId)
     {
-        if (eventId > 0)
-            __result = true;
+        eventBlackListSet ??= eventBlackList
+            .Split(',')
+            .Select(s => s.Trim())
+            .Where(s => int.TryParse(s, out _))
+            .Select(int.Parse)
+            .ToHashSet();
+        if (eventBlackListSet.Contains(eventId))
+            return true;
+        __result = true;
         return false;
     }
 

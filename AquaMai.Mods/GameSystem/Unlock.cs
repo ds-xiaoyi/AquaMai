@@ -181,6 +181,14 @@ public class Unlock
         }
     }
 
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(MusicData), nameof(MusicData.Init))]
+    [EnableIf(nameof(songs))]
+    public static void PostMusicDataInit(MusicData __instance)
+    {
+        Traverse.Create(__instance).Property<bool>("disable").Value = true;
+    }
+
     [ConfigEntry(
         en: "Unlock normally event-only tickets.",
         zh: "解锁游戏里所有可能的跑图券")]

@@ -30,10 +30,6 @@ public class CreditConfig
         {
             var stackTrace = new StackTrace();
             var stackFrames = stackTrace.GetFrames();
-            foreach (var f in stackFrames)
-            {
-                MelonLogger.Msg($"[PreIsFreePlay] DeclaringType.Name = {f.GetMethod()?.DeclaringType?.Name}, Name = {f.GetMethod()?.Name}");
-            }
             if (stackFrames.Any(f => f.GetMethod() is { DeclaringType: { Name: "TicketSelectMonitor" }, Name: "Initialize" }))
             {
                 __result = false;

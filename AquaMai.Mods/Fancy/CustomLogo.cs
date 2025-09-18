@@ -3,6 +3,7 @@ using System.IO;
 using AquaMai.Config.Attributes;
 using AquaMai.Core.Helpers;
 using HarmonyLib;
+using MelonLoader;
 using Monitor;
 using Process;
 using UnityEngine;
@@ -57,8 +58,9 @@ public class CustomLogo
             var logo = segaLogo[UnityEngine.Random.Range(0, segaLogo.Count)];
             foreach (var monitor in ____monitors)
             {
-                var go = monitor.transform.Find("Canvas/Main/SegaAllNet_LOGO/NUL_ADT_SegaAllNet_LOGO/SegaLogo") ??
-                    monitor.transform.Find("Canvas/Main/UI_ADV_SegaAllNet/NUL_all/SegaLogo");
+                var go = monitor.transform.Find("Canvas/Main/SegaAllNet_LOGO/NUL_ADT_SegaAllNet_LOGO/SegaLogo");
+                if (go == null)
+                    go = monitor.transform.Find("Canvas/Main/UI_ADV_SegaAllNet/Null_all/SegaLogo");
                 go.GetComponent<Image>().sprite = logo;
             }
         }
@@ -68,8 +70,9 @@ public class CustomLogo
             var logo = allNetLogo[UnityEngine.Random.Range(0, allNetLogo.Count)];
             foreach (var monitor in ____monitors)
             {
-                var go = monitor.transform.Find("Canvas/Main/SegaAllNet_LOGO/NUL_ADT_SegaAllNet_LOGO/AllNetLogo") ??
-                    monitor.transform.Find("Canvas/Main/UI_ADV_SegaAllNet/NUL_all/AllNetLogo");
+                var go = monitor.transform.Find("Canvas/Main/SegaAllNet_LOGO/NUL_ADT_SegaAllNet_LOGO/AllNetLogo");
+                if (go == null)
+                    go = monitor.transform.Find("Canvas/Main/UI_ADV_SegaAllNet/Null_all/AllNetLogo");
                 go.GetComponent<Image>().sprite = logo;
             }
         }

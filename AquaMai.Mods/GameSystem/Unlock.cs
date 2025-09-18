@@ -184,7 +184,7 @@ public class Unlock
     [ConfigEntry(
         en: "Unlock normally event-only tickets.",
         zh: "解锁游戏里所有可能的跑图券")]
-    private static readonly bool tickets = true;
+    private static readonly bool tickets = false;
 
     [EnableIf(typeof(Unlock), nameof(tickets))]
     public class TicketHook
@@ -327,7 +327,8 @@ public class Unlock
 
     [ConfigEntry(
         en: "Do not unlock the following events. Leave it enabled if you don't know what this is.",
-        zh: "不解锁以下 Event。如果你不知道这是什么，请勿修改"
+        zh: "不解锁以下 Event。如果你不知道这是什么，请勿修改",
+        hideWhenDefault: true
     )]
     private static readonly string eventBlackList = "0,250926121";
     private static HashSet<int> eventBlackListSet = null;

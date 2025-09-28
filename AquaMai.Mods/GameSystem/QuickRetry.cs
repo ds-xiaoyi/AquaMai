@@ -1,6 +1,7 @@
 ﻿using AquaMai.Core.Attributes;
 using AquaMai.Config.Attributes;
 using HarmonyLib;
+using MAI2.Util;
 using Manager;
 
 namespace AquaMai.Mods.GameSystem;
@@ -18,6 +19,11 @@ public class QuickRetry
         zh: "在宴谱中强制启用")]
     private static readonly bool enableInUtage = false;
 
+    [ConfigEntry(
+        en: "Make quick retry faster.",
+        zh: "将长按时间修改为 0.5 秒")]
+    private static readonly bool quickerRetry = false;
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(Monitor.QuickRetry), "IsQuickRetryEnable")]
     public static bool OnQuickRetryIsQuickRetryEnable(ref bool __result)
@@ -32,5 +38,14 @@ public class QuickRetry
             __result = !isUtageProperty.PropertyExists() || !isUtageProperty.GetValue<bool>();
         }
         return false;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(Monitor.QuickRetry), "Execute")]
+    [EnableIf(nameof(quickerRetry))]
+    public static void ExecutePostfix(double ____pushTimer)
+    {
+        if (____pushTimer < 500) return;
+        Singleton<GamePlayManager>.Instance.SetQuickRetryFrag(flag: true);
     }
 }

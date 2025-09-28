@@ -6,6 +6,8 @@ using AquaMai.Core.Helpers;
 using AquaMai.Mods.Tweaks.TimeSaving;
 using HarmonyLib;
 using Mai2.Mai2Cue;
+using MAI2.Util;
+using MAI2System;
 using Main;
 using Manager;
 using MelonLoader;
@@ -55,6 +57,7 @@ public class OneKeyEntryEnd
                 // Typo in Assembly-CSharp
                 case "Process.CharacterSelectProces":
                 case "Process.TicketSelect.TicketSelectProcess":
+                    GameManager.IsNormalMode = true;
                     processToRelease = process.Process;
                     break;
 

@@ -216,6 +216,7 @@ public class ScreenPositionAdjust
             camera.orthographic = true;
             camera.orthographicSize = 960;
             camera.transform.position = Camera.main.transform.position;
+            camera.farClipPlane = Camera.main.farClipPlane;
             Camera.main.transform.position = new Vector3(ConfigLoader.Config.GetSectionState(typeof(SinglePlayer)).Enabled ? 11451 - 540 : 11451, 19198, -800);
 
             for (int i = 0; i < 4; i++)

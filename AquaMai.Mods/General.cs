@@ -11,7 +11,7 @@ namespace AquaMai.Mods;
 public class General
 {
     [ConfigEntry(
-        name: "AquaMai 语言",
+        name: "Mod 界面语言",
         en: """
             Language for mod UI (en and zh supported).
             If empty, the system language will be used.

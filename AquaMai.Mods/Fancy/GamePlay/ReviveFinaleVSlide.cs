@@ -1,12 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Reflection.Emit;
-using AquaMai.Core.Attributes;
 using AquaMai.Config.Attributes;
 using HarmonyLib;
 using Manager;
-using MelonLoader;
 
-namespace AquaMai.Mods.GameSystem;
+namespace AquaMai.Mods.Fancy.GamePlay;
 
 [ConfigSection(
     en: "Allow v-shaped slide with the same starting and ending point, such as \"1v1\" in Simai notation",
@@ -15,16 +13,12 @@ public static class ReviveFinaleVSlide
 {
     public static List<string> InsertData(List<string> list)
     {
-        MelonLogger.Msg("[ReviveFinaleVSlide] Insert SVG data");
-        
         list[0] = "V_1.svg";
         return list;
     }
     
     public static List<List<SlideManager.HitArea>> InsertHitArea(List<List<SlideManager.HitArea>> list)
     {
-        MelonLogger.Msg("[ReviveFinaleVSlide] Insert hit area list");;
-        
         list[0] = [ 
             new SlideManager.HitArea
             {
@@ -72,11 +66,11 @@ public static class ReviveFinaleVSlide
             {
                 if (insn.StoresField(vDataList))
                 {
-                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ReviveFinaleVSlide), "InsertData"));
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ReviveFinaleVSlide), nameof(InsertData)));
                 }
                 else if (insn.StoresField(vHitAreaList))
                 {
-                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ReviveFinaleVSlide), "InsertHitArea"));
+                    yield return new CodeInstruction(OpCodes.Call, AccessTools.Method(typeof(ReviveFinaleVSlide), nameof(InsertHitArea)));
                 }
 
                 yield return insn;

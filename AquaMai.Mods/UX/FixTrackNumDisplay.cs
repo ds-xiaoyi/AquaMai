@@ -1,13 +1,13 @@
-using HarmonyLib;
-using Monitor;
-using UnityEngine;
-using AquaMai.Config.Attributes;
-using MelonLoader;
 using System;
-using UI;
+using AquaMai.Config.Attributes;
+using HarmonyLib;
 using Manager;
+using MelonLoader;
+using Monitor;
+using UI;
+using UnityEngine;
 
-namespace AquaMai.Mods.Fix;
+namespace AquaMai.Mods.UX;
 
 [ConfigSection(
     en: "Make track number in top right corner display two digits",

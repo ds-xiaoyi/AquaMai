@@ -55,6 +55,7 @@
   - Fancy.GamePlay.JudgeDisplay4B
   - Utils.DisplayTouchInGame
   - UX.DontRuinMyAccount
+  - UX.FixTrackNumDisplay
 
 系统修改:
   - GameSystem.Window
@@ -104,4 +105,3 @@
   - Fancy.GamePlay.RealisticRandomJudge
   - Fancy.GamePlay.TrackStartProcessTweak
   - Fancy.GamePlay.FixJudgeTouchHoldInNormalArea
-  - Fix.FixTrackNumDisplay

@@ -21,5 +21,4 @@ public class ConfigSectionAttribute(
     public bool ExampleHidden { get; } = exampleHidden;
     public bool DefaultOn { get; } = defaultOn || alwaysEnabled;
     public bool AlwaysEnabled { get; } = alwaysEnabled;
-    public string Name { get; } = name;
 }

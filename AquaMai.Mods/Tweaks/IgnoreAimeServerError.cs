@@ -6,7 +6,8 @@ namespace AquaMai.Mods.Tweaks;
 
 [ConfigSection(
     en: "Prevent gray network caused by mistakenly thinking it's an AimeDB server issue.",
-    zh: "防止因错误认为 AimeDB 服务器问题引起的灰网，建议开启")]
+    zh: "防止因错误认为 AimeDB 服务器问题引起的灰网，建议开启",
+    defaultOn: true)]
 public class IgnoreAimeServerError
 {
     [HarmonyPatch(typeof(OperationManager), "IsAliveAimeServer", MethodType.Getter)]

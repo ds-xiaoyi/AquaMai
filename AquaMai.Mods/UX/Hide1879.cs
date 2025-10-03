@@ -8,7 +8,8 @@ namespace AquaMai.Mods.UX;
 
 [ConfigSection(
     en: "Hide glitch Xaleid◆scopiX in normal mode",
-    zh: "在正常模式中，隐藏乱码曲 Xaleid◆scopiX"
+    zh: "在正常模式中，隐藏乱码曲 Xaleid◆scopiX",
+    defaultOn: true
 )]
 public class Hide1879
 {
@@ -31,7 +32,6 @@ public class Hide1879
             if (notesList != null && notesList.ContainsKey(011879))
             {
                 notesList.Remove(011879);
-                MelonLogger.Msg($"[Hide 1879] Hide glitch Xaleid◆scopiX in normal mode");
             }
         }
         catch (Exception ex)

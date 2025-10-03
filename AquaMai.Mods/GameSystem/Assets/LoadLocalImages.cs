@@ -16,7 +16,8 @@ namespace AquaMai.Mods.GameSystem.Assets;
 
 [ConfigSection(
     en: "Load asset images from the configured directory (for self-made charts).",
-    zh: "从指定目录下加载资源图片（自制谱用）")]
+    zh: "从指定目录下加载资源图片（自制谱用）",
+    defaultOn: true)]
 public class LoadLocalImages
 {
     [ConfigEntry]

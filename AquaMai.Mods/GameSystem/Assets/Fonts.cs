@@ -12,7 +12,8 @@ namespace AquaMai.Mods.GameSystem.Assets;
 
 [ConfigSection(
     en: "Use custom font(s) as fallback or fully replace the original game font.",
-    zh: "使用自定义字体作为回退（解决中文字形缺失问题），或完全替换游戏原字体")]
+    zh: "使用自定义字体作为回退（解决中文字形缺失问题），或完全替换游戏原字体",
+    defaultOn: true)]
 public class Fonts
 {
     [ConfigEntry(

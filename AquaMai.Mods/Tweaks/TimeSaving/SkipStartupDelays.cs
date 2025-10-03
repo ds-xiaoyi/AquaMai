@@ -10,7 +10,8 @@ namespace AquaMai.Mods.Tweaks.TimeSaving;
     zh: """
         在自检界面，每个屏幕结束的时候都会等两秒才进入下一个屏幕，很浪费时间
         开了这个选项之后就不会等了
-        """)]
+        """,
+    defaultOn: true)]
 public class SkipStartupDelays
 {
     [HarmonyPrefix]

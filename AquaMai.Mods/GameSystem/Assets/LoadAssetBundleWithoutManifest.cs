@@ -13,7 +13,8 @@ namespace AquaMai.Mods.GameSystem.Assets;
     zh: """
         加载所有存在的 .ab 图片资源（无视 AssetBundleImages.manifest）
         导入了删除曲包之类的话，应该需要开启这个
-        """)]
+        """,
+    defaultOn: true)]
 public class LoadAssetBundleWithoutManifest
 {
     private static HashSet<string> abFiles = new HashSet<string>();

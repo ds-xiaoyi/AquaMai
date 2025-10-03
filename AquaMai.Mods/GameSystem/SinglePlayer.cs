@@ -25,11 +25,9 @@ namespace AquaMai.Mods.GameSystem;
 [ConfigSection(
     en: """
         Single player: Show 1P only, at the center of the screen.
-        Enable radius for mouse input for a more realistic touchscreen experience.
         """,
     zh: """
         单人模式，不显示 2P
-        同时为鼠标输入启用半径，以获得更真实的触摸屏体验
         """)]
 public partial class SinglePlayer
 {

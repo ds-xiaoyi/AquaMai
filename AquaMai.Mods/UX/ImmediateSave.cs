@@ -25,7 +25,8 @@ namespace AquaMai.Mods.UX;
 
 [ConfigSection(
     en: "Save immediate after playing a song.",
-    zh: "打完一首歌的时候立即向服务器保存成绩")]
+    zh: "打完一首歌的时候立即向服务器保存成绩",
+    defaultOn: true)]
 public class ImmediateSave
 {
     [HarmonyPatch]

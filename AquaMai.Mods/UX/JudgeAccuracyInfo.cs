@@ -139,6 +139,9 @@ public class JudgeAccuracyInfo
         // MelonLogger.Msg($"{___JudgeType}: {___JudgeTimingDiffMsec}, {raw}");
     }
     
+    [ConfigEntry("保存路径")]
+    public static string savePath = "JudgeAccuracyInfo";
+    
     
     [HarmonyPostfix]
     [HarmonyPatch(typeof(ResultProcess), "OnStart")]
@@ -152,7 +155,7 @@ public class JudgeAccuracyInfo
             if (!____userData[idx].IsEntry) continue;
             
             var fileName = $"Acc_Track_{GameManager.MusicTrackNumber}_Player_{idx}.txt";
-            var directoryPath = Path.Combine(Environment.CurrentDirectory, "JudgeAccuracyInfo");
+            var directoryPath = Path.Combine(Environment.CurrentDirectory, savePath);
             if (!Directory.Exists(directoryPath)) Directory.CreateDirectory(directoryPath);
             var filePath = Path.Combine(directoryPath, fileName);
             

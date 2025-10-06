@@ -20,7 +20,7 @@ public class Hide1879
     {
         try
         {
-            if (!GameManager.IsNormalMode) return; // 仅在 Normal 模式下生效
+            if (GameManager.IsKaleidxScopeMode) return;
 
             var dm = DataManager.Instance;
             if (dm == null) return;

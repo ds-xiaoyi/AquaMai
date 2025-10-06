@@ -1,15 +1,14 @@
-﻿using System.Diagnostics;
-using System.Linq;
+﻿using System.Reflection;
 using AquaMai.Config.Attributes;
 using AquaMai.Core.Attributes;
 using HarmonyLib;
 using Manager;
-using MelonLoader;
 using Monitor;
 using Process;
 using Process.Entry.State;
 using Process.ModeSelect;
 using UnityEngine.Playables;
+using EnableConditionOperator = AquaMai.Core.Attributes.EnableConditionOperator;
 
 namespace AquaMai.Mods.GameSystem;
 
@@ -20,65 +19,72 @@ namespace AquaMai.Mods.GameSystem;
 public class DisableTimeout
 {
     [ConfigEntry(
-        name: "游戏开始倒计时",
-        en: "Disable game start timer.",
-        zh: "也移除刷卡和选择模式界面的倒计时")]
-    private static readonly bool inGameStart = true;
-
-    [ConfigEntry(
-        name: "照片编辑倒计时",
-        en: "Disable timer in PhotoEditProcess, not recommended.",
-        zh: "也移除 可以看一看游戏成绩哦 界面的倒计时，不推荐启用，会导致无法点击上传照片按钮")]
-    private static readonly bool inPhotoEditProcess = false;
+        name: "移除续关倒计时",
+        en: "Disable timer in ContinueProcess")]
+    private static readonly bool inContinueProcess = false;
 
     [ConfigEntry(
         name: "隐藏计时器",
         en: "Hide the timer display.")]
     private static readonly bool hideTimer = true;
 
+    [ConfigEntry(
+        name: "显示无穷符号",
+        zh: "仅在 隐藏计时器 关闭时显示",
+        en: "Show infinity symbol")]
+    private static readonly bool showInfinity = true;
+
+    [ConfigEntry(
+        name: "快速跳过",
+        zh: "在登录和选择模式界面，按一下跳过按钮就可以立即跳过",
+        en: "Quickly skip entry and mode select")]
+    private static readonly bool instanceSkip = false;
+
+    private static bool isInContinueProcess = false;
+
     private static bool ShouldNotEnable()
     {
-        if (inGameStart && inPhotoEditProcess) return false;
-        var stackTrace = new StackTrace();
-        var stackFrames = stackTrace.GetFrames();
-        var names = stackFrames.Select(it => it.GetMethod().DeclaringType.Name).ToArray();
-# if DEBUG
-        MelonLogger.Msg(names.Join());
-# endif
-        if (!inGameStart && (names.Contains("EntryProcess") || names.Contains("ModeSelectProcess"))) return true;
-        if (!inPhotoEditProcess && names.Contains("PhotoEditProcess")) return true;
-        return false;
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(TimerController), "PrepareTimer")]
-    public static void PrePrepareTimer(ref int second)
-    {
-        if (ShouldNotEnable()) return;
-        second = 65535;
+        return !inContinueProcess && isInContinueProcess;
     }
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(TimerController), "PrepareTimer")]
+    [EnableIf(nameof(hideTimer), EnableConditionOperator.Equal, false)]
     public static void PostPrepareTimer(TimerController __instance)
     {
-        if (hideTimer) return;
+        if (!showInfinity) return;
         if (ShouldNotEnable()) return;
         Traverse.Create(__instance).Property<bool>("IsInfinity").Value = true;
     }
 
+    private static MethodBase _updateFreedomModeCounter = typeof(TimerController).GetMethod("UpdateFreedomModeCounter", BindingFlags.NonPublic);
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(TimerController), nameof(TimerController.UpdateTimer))]
+    public static bool UpdateTimer(TimerController __instance, int ____countDownSecond, bool ____isTimeCounting)
+    {
+        if (ShouldNotEnable()) return true;
+        if (____countDownSecond <= 0) return true;
+        if (!____isTimeCounting) return true;
+        if (GameManager.IsFreedomMode && GameManager.IsFreedomCountDown && !GameManager.IsFreedomTimerPause)
+        {
+            _updateFreedomModeCounter.Invoke(__instance, []);
+        }
+        return false;
+    }
+
     [HarmonyPrefix]
     [HarmonyPatch(typeof(CommonTimer), "SetVisible")]
+    [EnableIf(nameof(hideTimer))]
     public static void CommonTimerSetVisible(ref bool isVisible)
     {
         if (ShouldNotEnable()) return;
-        if (!hideTimer) return;
         isVisible = false;
     }
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(EntryProcess), "DecrementTimerSecond")]
-    [EnableIf(nameof(inGameStart))]
+    [EnableIf(nameof(instanceSkip))]
     public static bool EntryProcessDecrementTimerSecond(ContextEntry ____context)
     {
         SoundManager.PlaySE(Mai2.Mai2Cue.Cue.SE_SYS_SKIP, 0);
@@ -88,7 +94,7 @@ public class DisableTimeout
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(ModeSelectProcess), "UpdateInput")]
-    [EnableIf(nameof(inGameStart))]
+    [EnableIf(nameof(instanceSkip))]
     public static bool ModeSelectProcessUpdateInput(ModeSelectProcess __instance)
     {
         if (!InputManager.GetMonitorButtonDown(InputManager.ButtonSetting.Button05)) return true;
@@ -96,28 +102,6 @@ public class DisableTimeout
         SoundManager.PlaySE(Mai2.Mai2Cue.Cue.SE_SYS_SKIP, 0);
         Traverse.Create(__instance).Method("TimeUp").GetValue();
         return false;
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(PhotoEditProcess), "MainMenuUpdate")]
-    [EnableIf(nameof(inPhotoEditProcess))]
-    public static void PhotoEditProcess(PhotoEditMonitor[] ____monitors, PhotoEditProcess __instance)
-    {
-        if (!InputManager.GetMonitorButtonDown(InputManager.ButtonSetting.Button04)) return;
-        SoundManager.PlaySE(Mai2.Mai2Cue.Cue.SE_SYS_SKIP, 0);
-        for (var i = 0; i < 2; i++)
-        {
-            try
-            {
-                ____monitors[i].SetButtonPressed(InputManager.ButtonSetting.Button04);
-            }
-            catch
-            {
-                // ignored
-            }
-        }
-
-        Traverse.Create(__instance).Method("OnTimeUp").GetValue();
     }
 
     [HarmonyPostfix]
@@ -138,5 +122,21 @@ public class DisableTimeout
         {
             ____director.extrapolationMode = DirectorWrapMode.Hold;
         }
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(ContinueProcess), "OnStart")]
+    [EnableIf(nameof(inContinueProcess), EnableConditionOperator.Equal, false)]
+    public static void ContinueProcessOnStart()
+    {
+        isInContinueProcess = true;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(ContinueProcess), "OnRelease")]
+    [EnableIf(nameof(inContinueProcess), EnableConditionOperator.Equal, false)]
+    public static void ContinueProcessOnRelease()
+    {
+        isInContinueProcess = false;
     }
 }

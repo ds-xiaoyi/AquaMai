@@ -5,6 +5,8 @@ namespace AquaMai.Config.Attributes;
 
 [AttributeUsage(AttributeTargets.Class)]
 public class ConfigSectionAttribute(
+    // 用于在 MaiChartManager 中显示的名称，尽量控制在八个字以内吧
+    string name = null,
     string en = null,
     string zh = null,
     // It will be hidden if the default value is preserved.
@@ -13,9 +15,7 @@ public class ConfigSectionAttribute(
     bool defaultOn = false,
     // NOTE: You probably shouldn't use this. Only the "General" section is using this.
     //       Implies defaultOn = true.
-    bool alwaysEnabled = false,
-    // 用于在 MaiChartManager 中显示的名称，尽量控制在八个字以内吧
-    string name = null) : Attribute, IConfigSectionAttribute
+    bool alwaysEnabled = false) : Attribute, IConfigSectionAttribute
 {
     public IConfigComment Comment { get; } = new ConfigComment(en, zh, name);
     public bool ExampleHidden { get; } = exampleHidden;

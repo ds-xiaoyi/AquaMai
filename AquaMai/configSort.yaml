@@ -103,6 +103,7 @@
   - Fancy.GamePlay.ExtendNotesPool
   - Tweaks.TimeSaving.SkipStartupWarning
   - Tweaks.TimeSaving.SkipStartupDelays
+  - Fancy.IgnoreCommercialTimeout
   - Utils.ShowNetErrorDetail
   - Tweaks.IgnoreAimeServerError
   - UX.NoAmDaemonAlert

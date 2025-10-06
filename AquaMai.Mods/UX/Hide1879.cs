@@ -1,6 +1,8 @@
 using HarmonyLib;
 using AquaMai.Config.Attributes;
 using System;
+using System.Diagnostics;
+using System.Linq;
 using MelonLoader;
 using Manager;
 
@@ -21,6 +23,12 @@ public class Hide1879
         try
         {
             if (GameManager.IsKaleidxScopeMode) return;
+            var stackTrace = new StackTrace();
+            var stackFrames = stackTrace.GetFrames();
+            if (!stackFrames.Select(it => it.GetMethod().DeclaringType.Name).Contains("MusicSelectProcess"))
+            {
+                return;
+            }
 
             var dm = DataManager.Instance;
             if (dm == null) return;

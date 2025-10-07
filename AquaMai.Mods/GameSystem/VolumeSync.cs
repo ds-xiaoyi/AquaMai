@@ -10,6 +10,7 @@ using Type = System.Type;
 namespace AquaMai.Mods.GameSystem;
 
 [ConfigSection(
+    "音量同步",
     zh: """
         将1P耳机音量同步给游戏主音量（外放音量）
         注意：若此功能与八声道同时开启，会导致内置耳机声道的音量被缩放两次，推荐在仅使用1P且不开启八声道时使用,

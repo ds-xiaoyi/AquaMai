@@ -18,6 +18,7 @@ using Monitor;
 namespace AquaMai.Mods.Fancy;
 
 [ConfigSection(
+    "开场视频",
     en: "Play custom intro cinematic before track start",
     zh: "播放自定义乐曲开场视频")]
 public class CustomIntroCinematic

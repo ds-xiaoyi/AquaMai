@@ -17,6 +17,7 @@ using Monitor.Entry;
 using Monitor.Entry.Parts.Screens;
 using UnityEngine;
 using Fx;
+using Process;
 
 namespace AquaMai.Mods.GameSystem;
 
@@ -32,7 +33,6 @@ namespace AquaMai.Mods.GameSystem;
         """)]
 public partial class SinglePlayer
 {
-
     [ConfigEntry(
         name: "隐藏副屏",
         en: "Only show the main area, without the sub-monitor.",
@@ -42,7 +42,6 @@ public partial class SinglePlayer
     [HarmonyPatch]
     public class WhateverInitialize
     {
-
         public static IEnumerable<MethodBase> TargetMethods()
         {
             var lateInitialize = AccessTools.Method(typeof(Main.GameMain), "LateInitialize", [typeof(MonoBehaviour), typeof(Transform), typeof(Transform)]);
@@ -138,5 +137,38 @@ public partial class SinglePlayer
     public static void OnAfterPatch()
     {
         Core.Helpers.GuiSizes.SinglePlayer = true;
+    }
+
+    [ConfigEntry(
+        name: "显示自由模式计时",
+        en: "Show the timer in free mode on the sub-monitor.",
+        zh: "使用自由模式时，在副屏显示计时器")]
+    public static bool showFreedomModeTimer = true;
+
+    [EnableIf(nameof(showFreedomModeTimer))]
+    [HarmonyPatch(typeof(PleaseWaitProcess), "OnStart")]
+    [HarmonyPostfix]
+    public static void FreedomModeTimerHook(PleaseWaitMonitor[] ____monitors)
+    {
+        var target = ____monitors[0].transform.Find("Canvas/Sub");
+        var timer10 = ____monitors[1].transform.Find("Canvas/Main/FreedomMode/UI_Timer10");
+        var timer1 = ____monitors[1].transform.Find("Canvas/Main/FreedomMode/UI_Timer1");
+
+        target.gameObject.SetActive(true);
+        var go = new GameObject("[AquaMai] 自由模式计时器");
+        go.transform.localScale = Vector3.one * 0.4f;
+        go.transform.position = new Vector3(390, -165, 0);
+        go.transform.SetParent(target, false);
+        timer1.transform.SetParent(go.transform, false);
+        timer10.transform.SetParent(go.transform, false);
+    }
+
+    [EnableIf(nameof(showFreedomModeTimer))]
+    [HarmonyPatch(typeof(PleaseWaitMonitor), "Initialize")]
+    [HarmonyPostfix]
+    public static void PleaseWaitMonitorInitialize(PleaseWaitMonitor.SpriteTimer ____time1, PleaseWaitMonitor.SpriteTimer ____time10)
+    {
+        ____time1.SetVisible(false);
+        ____time10.SetVisible(false);
     }
 }

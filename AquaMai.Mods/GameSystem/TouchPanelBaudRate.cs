@@ -16,9 +16,7 @@ namespace AquaMai.Mods.GameSystem;
         """)]
 public class TouchPanelBaudRate
 {
-    [ConfigEntry(
-        name: "波特率",
-        en: "Baud rate.")]
+    [ConfigEntry("波特率")]
     private static readonly int baudRate = 9600;
 
     [HarmonyPatch(typeof(NewTouchPanel), "Open")]

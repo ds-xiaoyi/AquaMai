@@ -157,7 +157,7 @@ public partial class SinglePlayer
         target.gameObject.SetActive(true);
         var go = new GameObject("[AquaMai] 自由模式计时器");
         go.transform.localScale = Vector3.one * 0.4f;
-        go.transform.position = new Vector3(390, -165, 0);
+        go.transform.position = new Vector3(390, 50, 0);
         go.transform.SetParent(target, false);
         timer1.transform.SetParent(go.transform, false);
         timer10.transform.SetParent(go.transform, false);

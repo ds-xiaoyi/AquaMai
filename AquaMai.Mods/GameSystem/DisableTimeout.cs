@@ -24,6 +24,12 @@ public class DisableTimeout
     private static readonly bool inContinueProcess = false;
 
     [ConfigEntry(
+        name: "移除开始倒计时",
+        en: "Disable game start timer.",
+        zh: "也移除刷卡和选择模式界面的倒计时")]
+    private static readonly bool inGameStart = true;
+
+    [ConfigEntry(
         name: "隐藏计时器",
         en: "Hide the timer display.")]
     private static readonly bool hideTimer = true;
@@ -40,12 +46,7 @@ public class DisableTimeout
         en: "Quickly skip entry and mode select")]
     private static readonly bool instanceSkip = false;
 
-    private static bool isInContinueProcess = false;
-
-    private static bool ShouldNotEnable()
-    {
-        return !inContinueProcess && isInContinueProcess;
-    }
+    private static bool shouldNotEnable = false;
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(TimerController), "PrepareTimer")]
@@ -53,7 +54,7 @@ public class DisableTimeout
     public static void PostPrepareTimer(TimerController __instance)
     {
         if (!showInfinity) return;
-        if (ShouldNotEnable()) return;
+        if (shouldNotEnable) return;
         Traverse.Create(__instance).Property<bool>("IsInfinity").Value = true;
     }
 
@@ -63,7 +64,7 @@ public class DisableTimeout
     [HarmonyPatch(typeof(TimerController), nameof(TimerController.UpdateTimer))]
     public static bool UpdateTimer(TimerController __instance, int ____countDownSecond, bool ____isTimeCounting)
     {
-        if (ShouldNotEnable()) return true;
+        if (shouldNotEnable) return true;
         if (____countDownSecond <= 0) return true;
         if (!____isTimeCounting) return true;
         if (GameManager.IsFreedomMode && GameManager.IsFreedomCountDown && !GameManager.IsFreedomTimerPause)
@@ -78,7 +79,7 @@ public class DisableTimeout
     [EnableIf(nameof(hideTimer))]
     public static void CommonTimerSetVisible(ref bool isVisible)
     {
-        if (ShouldNotEnable()) return;
+        if (shouldNotEnable) return;
         isVisible = false;
     }
 
@@ -129,7 +130,7 @@ public class DisableTimeout
     [EnableIf(nameof(inContinueProcess), EnableConditionOperator.Equal, false)]
     public static void ContinueProcessOnStart()
     {
-        isInContinueProcess = true;
+        shouldNotEnable = true;
     }
 
     [HarmonyPrefix]
@@ -137,6 +138,38 @@ public class DisableTimeout
     [EnableIf(nameof(inContinueProcess), EnableConditionOperator.Equal, false)]
     public static void ContinueProcessOnRelease()
     {
-        isInContinueProcess = false;
+        shouldNotEnable = false;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(EntryProcess), "OnStart")]
+    [EnableIf(nameof(inGameStart), EnableConditionOperator.Equal, false)]
+    public static void EntryProcessOnStart()
+    {
+        shouldNotEnable = true;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(EntryProcess), "OnRelease")]
+    [EnableIf(nameof(inGameStart), EnableConditionOperator.Equal, false)]
+    public static void EntryProcessOnRelease()
+    {
+        shouldNotEnable = false;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(ModeSelectProcess), "OnStart")]
+    [EnableIf(nameof(inGameStart), EnableConditionOperator.Equal, false)]
+    public static void ModeSelectProcessOnStart()
+    {
+        shouldNotEnable = true;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(ModeSelectProcess), "OnRelease")]
+    [EnableIf(nameof(inGameStart), EnableConditionOperator.Equal, false)]
+    public static void ModeSelectProcessOnRelease()
+    {
+        shouldNotEnable = false;
     }
 }

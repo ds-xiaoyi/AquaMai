@@ -14,15 +14,16 @@ namespace AquaMai.Mods.GameSystem;
 public class QuickRetry
 {
     [ConfigEntry(
+        name: "更快触发",
+        en: "Make quick retry faster.",
+        zh: "将长按时间修改为 0.5 秒")]
+    private static readonly bool quickerRetry = false;
+
+    [ConfigEntry(
         name: "宴谱启用",
         en: "Force enable in Utage.",
         zh: "在宴谱中强制启用")]
     private static readonly bool enableInUtage = false;
-
-    [ConfigEntry(
-        en: "Make quick retry faster.",
-        zh: "将长按时间修改为 0.5 秒")]
-    private static readonly bool quickerRetry = false;
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(Monitor.QuickRetry), "IsQuickRetryEnable")]

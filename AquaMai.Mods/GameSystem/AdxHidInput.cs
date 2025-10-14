@@ -166,7 +166,7 @@ public class AdxHidInput
     }
 
     [HarmonyPatch]
-    [EnableIf(nameof(io4Compact), EnableConditionOperator.Equal, false)]
+    [EnableIf(typeof(AdxHidInput), nameof(io4Compact), EnableConditionOperator.Equal, false)]
     public static class Hook
     {
         public static IEnumerable<MethodBase> TargetMethods()

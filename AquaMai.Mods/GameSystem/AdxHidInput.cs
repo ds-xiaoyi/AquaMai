@@ -1,14 +1,17 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading;
 using AMDaemon;
 using AquaMai.Config.Attributes;
 using AquaMai.Config.Types;
+using AquaMai.Core.Attributes;
 using HarmonyLib;
 using HidLibrary;
 using MelonLoader;
 using UnityEngine;
+using EnableConditionOperator = AquaMai.Core.Attributes.EnableConditionOperator;
 
 namespace AquaMai.Mods.GameSystem;
 
@@ -20,12 +23,14 @@ public class AdxHidInput
 {
     private static HidDevice[] adxController = new HidDevice[2];
     private static byte[,] inputBuf = new byte[2, 32];
+    private static double[] td = [0, 0];
+    private static bool tdEnabled;
 
     private static void HidInputThread(int p)
     {
         while (true)
         {
-            if (adxController[p] == null) continue;
+            if (adxController[p] == null) return;
             var report1P = adxController[p].Read();
             if (report1P.Status != HidDeviceData.ReadStatus.Success || report1P.Data.Length <= 13) continue;
             for (int i = 0; i < 14; i++)
@@ -33,6 +38,42 @@ public class AdxHidInput
                 inputBuf[p, i] = report1P.Data[i];
             }
         }
+    }
+
+    private static void TdInit(int p)
+    {
+        adxController[p].OpenDevice();
+        var arr = new byte[64];
+        arr[0] = 71;
+        adxController[p].WriteReportSync(new HidReport(64)
+        {
+            ReportId = 1,
+            Data = arr,
+        });
+        Thread.Sleep(100);
+        var rpt = adxController[p].ReadReportSync(1);
+        if (rpt.Data[0] != 71)
+        {
+            MelonLogger.Msg($"[HidInput] TD Init {p} Failed");
+            return;
+        }
+        if (rpt.Data[5] < 110) return;
+        arr[0] = 0x73;
+        adxController[p].WriteReportSync(new HidReport(64)
+        {
+            ReportId = 1,
+            Data = arr,
+        });
+        Thread.Sleep(100);
+        rpt = adxController[p].ReadReportSync(1);
+        if (rpt.Data[0] != 0x73)
+        {
+            MelonLogger.Msg($"[HidInput] TD Init {p} Failed");
+            return;
+        }
+        if (rpt.Data[2] == 0) return;
+        td[p] = rpt.Data[2] * 0.25;
+        tdEnabled = true;
     }
 
     public static void OnBeforePatch()
@@ -61,6 +102,8 @@ public class AdxHidInput
         for (int i = 0; i < 2; i++)
         {
             if (adxController[i] == null) continue;
+            TdInit(i);
+            if (io4Compact) continue;
             var p = i;
             Thread hidThread = new Thread(() => HidInputThread(p));
             hidThread.Start();
@@ -78,6 +121,9 @@ public class AdxHidInput
 
     [ConfigEntry(name: "按钮 4（最下方的圆形按键）")]
     private static readonly AdxKeyMap button4 = AdxKeyMap.Test;
+
+    [ConfigEntry("IO4 兼容模式", zh: "如果你不知道这是什么，请勿开启", hideWhenDefault: true)]
+    private static readonly bool io4Compact = false;
 
     private static bool GetPushedByButton(int playerNo, InputId inputId)
     {
@@ -120,6 +166,7 @@ public class AdxHidInput
     }
 
     [HarmonyPatch]
+    [EnableIf(nameof(io4Compact), EnableConditionOperator.Equal, false)]
     public static class Hook
     {
         public static IEnumerable<MethodBase> TargetMethods()
@@ -156,6 +203,64 @@ public class AdxHidInput
             ____isStateOnOld2 = isStateOnOld2;
             ____isStateOnOld = isStateOnOld;
             return false;
+        }
+    }
+
+    private static readonly Dictionary<uint, Queue<TouchData>> _queue = new();
+    private static readonly object _lockObject = new object();
+
+    private struct TouchData
+    {
+        public ulong Data;
+        public uint Counter;
+        public DateTimeOffset Timestamp;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(Manager.InputManager), "SetNewTouchPanel")]
+    [EnableIf(nameof(tdEnabled))]
+    public static bool SetNewTouchPanel(uint index, ref ulong inputData, ref uint counter, ref bool __result)
+    {
+        var d = td[index];
+        if (d <= 0)
+        {
+            return true;
+        }
+
+        lock (_lockObject)
+        {
+            var currentTime = DateTimeOffset.UtcNow;
+            var dequeueCount = 0;
+
+            if (!_queue.ContainsKey(index))
+            {
+                _queue[index] = new Queue<TouchData>();
+            }
+
+            _queue[index].Enqueue(new TouchData
+            {
+                Data = inputData,
+                Counter = counter,
+                Timestamp = currentTime,
+            });
+
+            var ret = false;
+            foreach (var data in _queue[index])
+            {
+                if ((currentTime - data.Timestamp).TotalMilliseconds < d) break;
+                ret = true;
+                dequeueCount++;
+
+                inputData = data.Data;
+                counter = data.Counter;
+            }
+
+            for (var i = 0; i < dequeueCount; i++)
+            {
+                _queue[index].Dequeue();
+            }
+
+            return ret;
         }
     }
 }

@@ -32,4 +32,12 @@ public static class FestaControl
     {
         return false;
     }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(FestaManager), "CanAttendFesta")]
+    public static bool CanAttendFesta(ref bool __result)
+    {
+        __result = false;
+        return false;
+    }
 }

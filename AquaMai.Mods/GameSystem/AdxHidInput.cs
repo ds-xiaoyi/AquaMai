@@ -25,6 +25,7 @@ public class AdxHidInput
     private static byte[,] inputBuf = new byte[2, 32];
     private static double[] td = [0, 0];
     private static bool tdEnabled;
+    private static bool inputEnabled;
 
     private static void HidInputThread(int p)
     {
@@ -74,12 +75,13 @@ public class AdxHidInput
         if (rpt.Data[2] == 0) return;
         td[p] = rpt.Data[2] * 0.25;
         tdEnabled = true;
+        MelonLogger.Msg($"[HidInput] TD Init {p} OK, {td[p]} ms");
     }
 
     public static void OnBeforePatch()
     {
-        adxController[0] = HidDevices.Enumerate(0x2E3C, 0x5750).FirstOrDefault();
-        adxController[1] = HidDevices.Enumerate(0x2E4C, 0x5750).FirstOrDefault();
+        adxController[0] = HidDevices.Enumerate(0x2E3C, [0x5750, 0x5767]).FirstOrDefault(it => !it.DevicePath.EndsWith("kbd"));
+        adxController[1] = HidDevices.Enumerate(0x2E4C, 0x5750).Concat(HidDevices.Enumerate(0x2E3C, 0x5768)).FirstOrDefault(it => !it.DevicePath.EndsWith("kbd"));
 
         if (adxController[0] == null)
         {
@@ -103,7 +105,9 @@ public class AdxHidInput
         {
             if (adxController[i] == null) continue;
             TdInit(i);
+            if (adxController[i].Attributes.ProductId is 0x5767 or 0x5768) continue;
             if (io4Compact) continue;
+            inputEnabled = true;
             var p = i;
             Thread hidThread = new Thread(() => HidInputThread(p));
             hidThread.Start();
@@ -166,7 +170,7 @@ public class AdxHidInput
     }
 
     [HarmonyPatch]
-    [EnableIf(typeof(AdxHidInput), nameof(io4Compact), EnableConditionOperator.Equal, false)]
+    [EnableIf(typeof(AdxHidInput), nameof(inputEnabled))]
     public static class Hook
     {
         public static IEnumerable<MethodBase> TargetMethods()

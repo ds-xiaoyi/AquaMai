@@ -17,8 +17,9 @@ namespace AquaMai.Mods.GameSystem;
 
 [ConfigSection(
     name: "ADX HID 输入",
-    en: "Input using ADX HID firmware (do not enable if you are not using ADX's HID firmware, be sure to delete the existing HID related DLL when enabled)",
-    zh: "使用 ADX HID 固件的自定义输入（如果你没有使用 ADX 的 HID 固件，请不要启用。启用时请务必删除现有 HID 相关 DLL）")]
+    defaultOn: true,
+    en: "Input using ADX HID firmware (If you are not using ADX's HID firmware, enabling this won't do anything)",
+    zh: "使用 ADX HID 固件的自定义输入（没有 ADX 的话开了也不会加载，也没有坏处）")]
 public class AdxHidInput
 {
     private static HidDevice[] adxController = new HidDevice[2];
@@ -83,20 +84,12 @@ public class AdxHidInput
         adxController[0] = HidDevices.Enumerate(0x2E3C, [0x5750, 0x5767]).FirstOrDefault(it => !it.DevicePath.EndsWith("kbd"));
         adxController[1] = HidDevices.Enumerate(0x2E4C, 0x5750).Concat(HidDevices.Enumerate(0x2E3C, 0x5768)).FirstOrDefault(it => !it.DevicePath.EndsWith("kbd"));
 
-        if (adxController[0] == null)
-        {
-            MelonLogger.Msg("[HidInput] Open HID 1P Failed");
-        }
-        else
+        if (adxController[0] != null)
         {
             MelonLogger.Msg("[HidInput] Open HID 1P OK");
         }
 
-        if (adxController[1] == null)
-        {
-            MelonLogger.Msg("[HidInput] Open HID 2P Failed");
-        }
-        else
+        if (adxController[1] != null)
         {
             MelonLogger.Msg("[HidInput] Open HID 2P OK");
         }

@@ -23,40 +23,40 @@ namespace AquaMai.Mods.GameSystem;
         """)]
 public static class SoundRouting
 {
-    [ConfigEntry]
+    [ConfigEntry("1P外放左")]
     private static readonly SoundChannel routeP1SpeakerLeftTo = SoundChannel.P1SpeakerLeft;
 
-    [ConfigEntry]
+    [ConfigEntry("1P外放右")]
     private static readonly SoundChannel routeP1SpeakerRightTo = SoundChannel.P1SpeakerRight;
 
-    [ConfigEntry]
+    [ConfigEntry("1P耳机左")]
     private static readonly SoundChannel routeP1HeadphoneLeftTo = SoundChannel.P1HeadphoneLeft;
 
-    [ConfigEntry]
+    [ConfigEntry("1P耳机右")]
     private static readonly SoundChannel routeP1HeadphoneRightTo = SoundChannel.P1HeadphoneRight;
 
-    [ConfigEntry]
+    [ConfigEntry("2P外放左")]
     private static readonly SoundChannel routeP2SpeakerLeftTo = SoundChannel.P2SpeakerLeft;
 
-    [ConfigEntry]
+    [ConfigEntry("2P外放右")]
     private static readonly SoundChannel routeP2SpeakerRightTo = SoundChannel.P2SpeakerRight;
 
-    [ConfigEntry]
+    [ConfigEntry("2P耳机左")]
     private static readonly SoundChannel routeP2HeadphoneLeftTo = SoundChannel.P2HeadphoneLeft;
 
-    [ConfigEntry]
+    [ConfigEntry("2P耳机右")]
     private static readonly SoundChannel routeP2HeadphoneRightTo = SoundChannel.P2HeadphoneRight;
 
-    [ConfigEntry]
+    [ConfigEntry("1P外放音量")]
     private static readonly float volumeP1Speaker = 1.0f;
-    
-    [ConfigEntry]
+
+    [ConfigEntry("1P耳机音量")]
     private static readonly float volumeP1Headphone = 1.0f;
-    
-    [ConfigEntry]
+
+    [ConfigEntry("2P外放音量")]
     private static readonly float volumeP2Speaker = 1.0f;
-    
-    [ConfigEntry]
+
+    [ConfigEntry("2P耳机音量")]
     private static readonly float volumeP2Headphone = 1.0f;
 
     private const int PARAMETER_MATRIX_SIZE = 8 * 8 * 4; // 8 input * 8 output * 4 sizeof(float BE)

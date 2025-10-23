@@ -67,12 +67,34 @@ public class PracticeMode
 
     public static void SetSpeed()
     {
-        player.SetPitch((float)(1200 * Math.Log(speed, 2)));
-        // player.SetDspTimeStretchRatio(1 / speed);
-        player.UpdateAll();
+        if (player != null)
+        {
+            if (speed != 1)
+            {
+                player.SetPitch((float)(1200 * Math.Log(speed, 2)));
+            }
+            else
+            {
+                player.SetPitch(0);
+            }
+            player.UpdateAll();
+        }
 
-        movie.player.SetSpeed(speed);
-        gameCtrl?.ResetOptionSpeed();
+        if (movie != null && movie.player != null)
+        {
+            movie.player.SetSpeed(speed);
+        }
+        
+        if (gameCtrl != null)
+        {
+            try
+            {
+                gameCtrl.ResetOptionSpeed();
+            }
+            catch (System.Exception)
+            {
+            }
+        }
     }
 
     private static IEnumerator SetSpeedCoroutineInner()
@@ -84,6 +106,38 @@ public class PracticeMode
     public static void SetSpeedCoroutine()
     {
         SharedInstances.GameMainObject.StartCoroutine(SetSpeedCoroutineInner());
+    }
+    
+    public static void SetSpeedImmediate()
+    {
+        if (player != null)
+        {
+            if (speed != 1)
+            {
+                player.SetPitch((float)(1200 * Math.Log(speed, 2)));
+            }
+            else
+            {
+                player.SetPitch(0);
+            }
+            player.UpdateAll();
+        }
+        
+        if (movie != null && movie.player != null)
+        {
+            movie.player.SetSpeed(speed);
+        }
+        
+        if (gameCtrl != null)
+        {
+            try
+            {
+                gameCtrl.ResetOptionSpeed();
+            }
+            catch (System.Exception)
+            {
+            }
+        }
     }
 
     public static void SpeedUp()
@@ -116,6 +170,7 @@ public class PracticeMode
 
     public static void Seek(int addMsec)
     {
+
         // Debug feature 里面那个 timer 不能感知变速
         // 为了和魔改版本统一，polyfill 里面不修这个
         // 这里重新实现一个能感知变速的 Seek
@@ -177,6 +232,17 @@ public class PracticeMode
         repeatEnd = -1;
         speed = 1;
         ui = null;
+        
+        if (player != null)
+        {
+            player.SetPitch(0);
+            player.UpdateAll();
+        }
+        
+        if (movie != null && movie.player != null)
+        {
+            movie.player.SetSpeed(1);
+        }
     }
 
     [HarmonyPatch(typeof(GameProcess), "OnRelease")]
@@ -187,6 +253,17 @@ public class PracticeMode
         repeatEnd = -1;
         speed = 1;
         ui = null;
+        
+        if (player != null)
+        {
+            player.SetPitch(0);
+            player.UpdateAll();
+        }
+        
+        if (movie != null && movie.player != null)
+        {
+            movie.player.SetSpeed(1);
+        }
     }
 
     [HarmonyPatch(typeof(GameCtrl), "Initialize")]
@@ -236,6 +313,17 @@ public class PracticeMode
         MelonLogger.Msg($"[PracticeMode] NotesManager.StartPlay msecStartGap={msecStartGap}");
 #endif
         startGap = msecStartGap;
+        
+        if (player != null)
+        {
+            player.SetPitch(0);
+            player.UpdateAll();
+        }
+        
+        if (movie != null && movie.player != null)
+        {
+            movie.player.SetSpeed(1);
+        }
     }
 
     private static bool isInAdvDemo = false;
@@ -264,20 +352,70 @@ public class PracticeMode
             return true;
         }
 
+        if (speed == 1 && repeatStart == -1 && repeatEnd == -1)
+        {
+            return true;
+        }
         if (startGap != -1f)
         {
             ____curMSec = startGap;
             ____curMSecPre = startGap;
             ____stopwatch?.Reset();
             startGap = -1f;
+            
+            if (player != null)
+            {
+                if (speed != 1)
+                {
+                    player.SetPitch((float)(1200 * Math.Log(speed, 2)));
+                }
+                else
+                {
+                    player.SetPitch(0);
+                }
+                player.UpdateAll();
+            }
+            
+            if (movie != null && movie.player != null)
+            {
+                movie.player.SetSpeed(speed);
+            }
         }
         else
         {
             ____curMSecPre = ____curMSec;
             if (____isPlaying && ____stopwatch != null && !DebugFeature.Pause)
             {
-                var num = (double)____stopwatch.ElapsedTicks / Stopwatch.Frequency * 1000.0 * speed;
-                ____curMSec += (float)num;
+                if (player != null)
+                {
+                    if (speed != 1)
+                    {
+                        player.SetPitch((float)(1200 * Math.Log(speed, 2)));
+                    }
+                    else
+                    {
+                        player.SetPitch(0);
+                    }
+                    player.UpdateAll();
+                }
+                
+                if (movie != null && movie.player != null)
+                {
+                    movie.player.SetSpeed(speed);
+                }
+                
+                var originalDelta = (double)____stopwatch.ElapsedTicks / Stopwatch.Frequency * 1000.0;
+                
+                if (speed != 1)
+                {
+                    var practiceDelta = originalDelta * speed;
+                    ____curMSec += (float)practiceDelta;
+                }
+                else
+                {
+                    ____curMSec += (float)originalDelta;
+                }
+                
                 ____stopwatch.Reset();
                 ____stopwatch.Start();
             }
@@ -292,6 +430,22 @@ public class PracticeMode
     {
         var wrapper = ____players[2];
         player = (CriAtomExPlayer)wrapper.GetType().GetField("Player").GetValue(wrapper);
+        
+        if (player != null)
+        {
+            player.SetPitch(0);
+            player.UpdateAll();
+        }
+    }
+
+    [HarmonyPatch(typeof(MovieController), "Awake")]
+    [HarmonyPostfix]
+    public static void MovieControllerPostAwake(MovieMaterialMai2 ____moviePlayers)
+    {
+        movie = ____moviePlayers;
+    }
+
+
         // var pool = new CriAtomExStandardVoicePool(1, 8, 96000, true, 2);
         // pool.AttachDspTimeStretch();
         // player.SetVoicePoolIdentifier(pool.identifier);
@@ -303,12 +457,5 @@ public class PracticeMode
         // pool.AttachDspTimeStretch();
         // player1.SetVoicePoolIdentifier(pool.identifier);
         // player1.SetDspTimeStretchRatio(2);
-    }
-
-    [HarmonyPatch(typeof(MovieController), "Awake")]
-    [HarmonyPostfix]
-    public static void MovieControllerPostAwake(MovieMaterialMai2 ____moviePlayers)
-    {
-        movie = ____moviePlayers;
-    }
 }
+

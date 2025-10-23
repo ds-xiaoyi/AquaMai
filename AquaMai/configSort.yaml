@@ -106,6 +106,7 @@
   - GameSystem.Assets.LoadAssetBundleWithoutManifest
   - GameSystem.Assets.LoadLocalImages
   - GameSystem.Assets.MovieLoader
+  - GameSystem.Assets.IgnoreLoadFailedAssetBundle
   - GameSystem.OptionLoadFix
   - Tweaks.SkipUserVersionCheck
   - UX.DontRuinMyAccount

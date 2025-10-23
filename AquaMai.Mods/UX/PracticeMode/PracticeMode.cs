@@ -67,34 +67,12 @@ public class PracticeMode
 
     public static void SetSpeed()
     {
-        if (player != null)
-        {
-            if (speed != 1)
-            {
-                player.SetPitch((float)(1200 * Math.Log(speed, 2)));
-            }
-            else
-            {
-                player.SetPitch(0);
-            }
-            player.UpdateAll();
-        }
+        player.SetPitch((float)(1200 * Math.Log(speed, 2)));
+        // player.SetDspTimeStretchRatio(1 / speed);
+        player.UpdateAll();
 
-        if (movie != null && movie.player != null)
-        {
-            movie.player.SetSpeed(speed);
-        }
-        
-        if (gameCtrl != null)
-        {
-            try
-            {
-                gameCtrl.ResetOptionSpeed();
-            }
-            catch (System.Exception)
-            {
-            }
-        }
+        movie.player.SetSpeed(speed);
+        gameCtrl?.ResetOptionSpeed();
     }
 
     private static IEnumerator SetSpeedCoroutineInner()
@@ -106,38 +84,6 @@ public class PracticeMode
     public static void SetSpeedCoroutine()
     {
         SharedInstances.GameMainObject.StartCoroutine(SetSpeedCoroutineInner());
-    }
-    
-    public static void SetSpeedImmediate()
-    {
-        if (player != null)
-        {
-            if (speed != 1)
-            {
-                player.SetPitch((float)(1200 * Math.Log(speed, 2)));
-            }
-            else
-            {
-                player.SetPitch(0);
-            }
-            player.UpdateAll();
-        }
-        
-        if (movie != null && movie.player != null)
-        {
-            movie.player.SetSpeed(speed);
-        }
-        
-        if (gameCtrl != null)
-        {
-            try
-            {
-                gameCtrl.ResetOptionSpeed();
-            }
-            catch (System.Exception)
-            {
-            }
-        }
     }
 
     public static void SpeedUp()
@@ -298,7 +244,7 @@ public class PracticeMode
         {
             if (CurrentPlayMsec >= repeatEnd)
             {
-                CurrentPlayMsec = repeatStart;
+                DebugFeature.CurrentPlayMsec = repeatStart;
             }
         }
     }
@@ -352,10 +298,6 @@ public class PracticeMode
             return true;
         }
 
-        if (speed == 1 && repeatStart == -1 && repeatEnd == -1)
-        {
-            return true;
-        }
         if (startGap != -1f)
         {
             ____curMSec = startGap;
@@ -458,4 +400,3 @@ public class PracticeMode
         // player1.SetVoicePoolIdentifier(pool.identifier);
         // player1.SetDspTimeStretchRatio(2);
 }
-

@@ -1,0 +1,168 @@
+<root>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>1.3</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=2.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    </resheader>
+    <data name="SeekBackward" xml:space="preserve">
+        <value>倒退 &lt;&lt;</value>
+    </data>
+    <data name="SeekForward" xml:space="preserve">
+        <value>快进 &gt;&gt;</value>
+    </data>
+    <data name="Pause" xml:space="preserve">
+        <value>暂停</value>
+    </data>
+    <data name="MarkRepeatEnd" xml:space="preserve">
+        <value>标记结尾</value>
+    </data>
+    <data name="MarkRepeatStart" xml:space="preserve">
+        <value>标记开头</value>
+    </data>
+    <data name="RepeatNotSet" xml:space="preserve">
+        <value>循环未设定</value>
+    </data>
+    <data name="RepeatReset" xml:space="preserve">
+        <value>循环解除</value>
+    </data>
+    <data name="RepeatStartEndSet" xml:space="preserve">
+        <value>循环已设定</value>
+    </data>
+    <data name="RepeatStartSet" xml:space="preserve">
+        <value>循环开头已设定</value>
+    </data>
+    <data name="Speed" xml:space="preserve">
+        <value>速度</value>
+    </data>
+    <data name="SpeedDown" xml:space="preserve">
+        <value>速度 -</value>
+    </data>
+    <data name="SpeedReset" xml:space="preserve">
+        <value>速度重置</value>
+    </data>
+    <data name="SpeedUp" xml:space="preserve">
+        <value>速度 +</value>
+    </data>
+    <data name="LoadError" xml:space="preserve">
+        <value>加载过程中检测到错误！
+- 你是否正在使用魔改的 Assembly-CSharp.dll，这会导致函数不一致而无法找到需要修改的函数
+- 请检查是否有冲突的 Mod，或者开启了不兼容的选项</value>
+    </data>
+    <data name="SavingDontExit" xml:space="preserve">
+        <value>正在保存… 请不要关闭游戏</value>
+    </data>
+    <data name="Loaded" xml:space="preserve">
+        <value>加载完成！</value>
+    </data>
+    <data name="NetErrIsAliveServer" xml:space="preserve">
+        <value>主服务器通信错误</value>
+    </data>
+    <data name="NetErrIsAliveAimeReader" xml:space="preserve">
+        <value>Aime 读卡器错误</value>
+    </data>
+    <data name="NetErrIsAliveAimeServer" xml:space="preserve">
+        <value>AimeDB 通信错误</value>
+    </data>
+    <data name="NetErrWasDownloadSuccessOnce" xml:space="preserve">
+        <value>数据下载不成功</value>
+    </data>
+    <data name="RatingUpWhenSSSp" xml:space="preserve">
+        <value>推到鸟加可上 {0} 分</value>
+    </data>
+    <data name="RatingUpWhenAP" xml:space="preserve">
+        <value>推到AP可上 {0} 分</value>
+    </data>
+    <data name="Skip" xml:space="preserve">
+        <value>跳过</value>
+    </data>
+    <data name="SkipIncompatiblePatch" xml:space="preserve">
+        <value>&gt; 已跳过加载不兼容的功能: {0}</value>
+    </data>
+    <data name="RepeatEndTimeLessThenStartTime" xml:space="preserve">
+        <value>循环结束时间不能早于开始时间</value>
+    </data>
+    <data name="RepeatStartTimeNotSet" xml:space="preserve">
+        <value>请先设置循环开始时间</value>
+    </data>
+    <data name="CiBuildAlertTitle" xml:space="preserve">
+        <value>重要提示：测试版本</value>
+    </data>
+    <data name="CiBuildAlertContent" xml:space="preserve">
+        <value>您正在使用的是 AquaMai CI 构建版本。由于该版本基于最新的主线代码构建，可能包含未通知的配置文件变更或潜在问题。</value>
+    </data>
+    <data name="PlayCount" xml:space="preserve">
+        <value>游玩次数: {0}</value>
+    </data>
+    <data name="SelfMadeChartsHide" xml:space="preserve">
+        <value>已隐藏所有自制谱</value>
+    </data>
+    <data name="SelfMadeChartsShow" xml:space="preserve">
+        <value>已显示自制谱</value>
+    </data>
+    <data name="UserAllUpsertError" xml:space="preserve">
+        <value>保存 UserAll 失败</value>
+    </data>
+    <data name="PlaylogSaveError" xml:space="preserve">
+        <value>保存 Playlog 失败</value>
+    </data>
+    <data name="TouchPanelReset" xml:space="preserve">
+        <value>触摸面板已重置</value>
+    </data>
+    <data name="UserGhostAchievement" xml:space="preserve">
+        <value>友人对战目标: {0}</value>
+    </data>
+    <data name="NoCamera" xml:space="preserve">
+        <value>没有找到任何摄像头</value>
+    </data>
+    <data name="NoAmDaemonAlertMessage" xml:space="preserve">
+        <value>你是不是直接双击了 Sinmai.exe？这样是不行的，应该有一个东西叫做“启动.bat”或者“start.bat”，你需要用它来启动
+检查一下，你的 AMDaemon 还活着吗（看看有没有一个叫做 AMDaemon.exe 的命令行窗口在后台跑着）
+如果窗口消失了的话，那大概是你在配置上有一些问题，仔细检查一下你的 segatools.ini 吧
+也许窗口是在的，但是上面在不断滚动错误。如果是这样的话那大概也是配置有一些问题
+可以尝试自己解决一下。如果不行的话…那就问问群友或者身边会的人吧</value>
+    </data>
+    <data name="NoAmDaemonAlertTitle" xml:space="preserve">
+        <value>黑屏，是吗？为什么呢？</value>
+    </data>
+    <data name="NextPlayShowTouchDisplay" xml:space="preserve">
+        <value>游戏开始后副屏将显示触摸状态</value>
+    </data>
+    <data name="NextPlayHideTouchDisplay" xml:space="preserve">
+        <value>已禁用触摸状态显示</value>
+    </data>
+    <data name="UnableToUseTls" xml:space="preserve">
+        <value>无法与 Title 服务器建立安全连接，将使用普通 HTTP 代替</value>
+    </data>
+    <data name="GameSettingsMod" xml:space="preserve">
+        <value>Mod 设置</value>
+    </data>
+    <data name="GameSettingsNameMoveAnswerSound" xml:space="preserve">
+        <value>移动正解音</value>
+    </data>
+    <data name="GameSettingsDetailMoveAnswerSound" xml:space="preserve">
+        <value>在不修改其他判定时间的情况下，调整正解音的时间</value>
+    </data>
+    <data name="MoveAnswerSoundUnit" xml:space="preserve">
+        <value> 毫秒</value>
+    </data>
+    <data name="ScreenPositionAdjustTip" xml:space="preserve">
+        <value>正在调整屏幕区域位置
+当前正在调整的区块：{0}
+使用方向键移动位置
+当前移动速度：{1}，按下 [ 或 ] 键调整移动速度
+按下 {2} 切换调整的区块和退出调整模式</value>
+    </data>
+    <data name="AutoplayOn" xml:space="preserve">
+        <value>AutoPlay开启中</value>
+    </data>
+    <data name="AutoplayWasUsed" xml:space="preserve">
+        <value>Autoplay曾开启过，本曲成绩不会被上传。</value>
+    </data>
+</root>

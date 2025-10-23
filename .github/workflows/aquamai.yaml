@@ -1,0 +1,73 @@
+name: AquaMai Build
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request_target:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Fix Git line encoding bug
+        run: |
+          git config --global core.autocrlf false
+          git config --global core.eol lf
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get Git Describe
+        run: echo "GIT_DESCRIBE=$(git describe --tags --always)" >> $env:GITHUB_ENV
+
+      - name: Checkout Assets
+        uses: clansty/checkout@main
+        with:
+          repository: MewoLab/AquaMai-Build-Assets
+          ssh-key: ${{ secrets.BUILD_ASSETS_KEY }}
+          path: build-assets
+          max-attempts: 50
+          min-retry-interval: 1
+          max-retry-interval: 5
+
+      - name: Build AquaMai
+        shell: cmd
+        run: |
+          copy /y build-assets\SDEZ\* Libs
+          powershell ./build.ps1
+
+      - name: Prepare artifact
+        shell: cmd
+        run: |
+          cd Output
+          mkdir Upload
+          move AquaMai.dll Upload
+          move AquaMai.*.toml Upload
+  
+      - uses: actions/upload-artifact@v4
+        with:
+          name: AquaMai
+          path: Output\Upload
+
+      - name: Upload CI release
+        if: github.event_name != 'pull_request_target' && github.ref == 'refs/heads/main'
+        shell: cmd
+        run: build-assets\Releaser\AquaMaiReleaser.exe "Output\Upload\AquaMai.dll" "${{ env.GIT_DESCRIBE }}"
+
+      - name: Send to Telegram
+        if: github.event_name != 'pull_request_target' && github.ref == 'refs/heads/main'
+        run: |
+          $Uri = "https://api.telegram.org/bot${{ secrets.TELEGRAM_BOT_TOKEN }}/sendMediaGroup"
+          $Form = @{
+            chat_id = "-1002231087502"
+            media = @(
+              @{ type = "document"; media = "attach://aquamai_main"; caption = "${{ env.GIT_DESCRIBE }}`n${{ github.event.commits[0].message }}" },
+              @{ type = "document"; media = "attach://aquamai_zh" }
+              @{ type = "document"; media = "attach://aquamai_en" }
+            ) | ConvertTo-Json
+            aquamai_main = Get-Item Output\Upload\AquaMai.dll
+            aquamai_zh = Get-Item Output\Upload\AquaMai.zh.toml
+            aquamai_en = Get-Item Output\Upload\AquaMai.en.toml
+          }
+          Invoke-RestMethod -Uri $uri -Form $Form -Method Post

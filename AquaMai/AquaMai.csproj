@@ -37,6 +37,7 @@
     <ProjectReference Include="../AquaMai.Config/AquaMai.Config.csproj" />
     <ProjectReference Include="../AquaMai.Core/AquaMai.Core.csproj" />
     <ProjectReference Include="../AquaMai.Mods/AquaMai.Mods.csproj" />
+    <ProjectReference Include="../AquaMai.Build/AquaMai.Build.csproj" />
   </ItemGroup>
 
   <ItemGroup>

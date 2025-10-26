@@ -16,11 +16,8 @@ using Process;
 using UnityEngine;
 using AquaMai.Config.Attributes;
 using AquaMai.Config.Types;
-using MelonLoader;
 using DB;
 using MAI2.Util;
-using Process.SubSequence;
-using UserOption = Manager.UserDatas.UserOption;
 using Manager.UserDatas;
 
 namespace AquaMai.Mods.UX.PracticeMode;
@@ -31,12 +28,6 @@ namespace AquaMai.Mods.UX.PracticeMode;
     name: "练习模式")]
 public class PracticeMode : IPlayerSettingsItem
 {
-    [ConfigEntry(
-        name: "启用练习模式",
-        en: "Enable Practice Mode functionality. If disabled, Practice Mode will not take over the game.",
-        zh: "启用练习模式功能。如果关闭此选项，练习模式将不会接管游戏。")]
-    private static readonly bool EnablePracticeMode = true;
-
     [ConfigEntry(
         name: "练习模式激活后显示提示",
         en: "Show notice when Practice Mode is activated",
@@ -55,39 +46,23 @@ public class PracticeMode : IPlayerSettingsItem
         zh: "显示练习模式 UI 的按键")]
     public static readonly KeyCodeOrName key = KeyCodeOrName.Test;
 
-    [ConfigEntry(
-        name: "按键",
-        en: "Key to toggle Practice Mode outside of game.",
-        zh: "开关练习模式的按键")]
-    public static readonly KeyCodeOrName externalKey = KeyCodeOrName.F12;
-
     [ConfigEntry]
     public static readonly bool longPress = false;
 
     public static double repeatStart = -1;
     public static double repeatEnd = -1;
     public static float speed = 1;
-    public static bool needsTimeSync = false;
     private static CriAtomExPlayer player;
     private static MovieMaterialMai2 movie;
     public static GameCtrl gameCtrl;
     public static bool keepNoteSpeed = false;
     
-    private static bool[] userSettings = [false, false];
-    private static IPersistentStorage storage = new PlayerPrefsStorage();
+    private static bool userEnable;
     
     public static bool ignoreScore = false;
     private static UserScore oldScore;
     private static uint currentTrackNumber => GameManager.MusicTrackNumber;
     
-    private static bool GetUserSetting(uint monitorIndex) => userSettings[monitorIndex];
-    private static bool GetUserSetting(int monitorIndex) => GetUserSetting((uint)monitorIndex);
-    
-    private static bool IsPracticeModeEnabled()
-    {
-        return EnablePracticeMode && userSettings[0];
-    }
-
     public static void SetRepeatEnd(double time)
     {
         if (repeatStart == -1)
@@ -109,12 +84,11 @@ public class PracticeMode : IPlayerSettingsItem
     {
         repeatStart = -1;
         repeatEnd = -1;
-        needsTimeSync = false;
     }
 
     public static void SetSpeed()
     {
-        if (!IsPracticeModeEnabled()) return;
+        if (!userEnable) return;
         
         player.SetPitch((float)(1200 * Math.Log(speed, 2)));
         player.UpdateAll();
@@ -164,7 +138,7 @@ public class PracticeMode : IPlayerSettingsItem
 
     public static void Seek(int addMsec)
     {
-        if (!IsPracticeModeEnabled()) return;
+        if (!userEnable) return;
         
         // Debug feature 里面那个 timer 不能感知变速
         // 为了和魔改版本统一，polyfill 里面不修这个
@@ -182,7 +156,7 @@ public class PracticeMode : IPlayerSettingsItem
     [HarmonyPatch(typeof(GameCtrl), "ForceNoteCollect")]
     private static void ForceNoteCollect(NotesManager ___NoteMng)
     {
-        if (!IsPracticeModeEnabled()) return;
+        if (!userEnable) return;
         
         foreach (NoteData note in ___NoteMng.getReader().GetNoteList())
         {
@@ -198,7 +172,7 @@ public class PracticeMode : IPlayerSettingsItem
         get => NotesManager.GetCurrentMsec() - 91;
         set
         {
-            if (!IsPracticeModeEnabled()) return;
+            if (!userEnable) return;
             
             DebugFeature.CurrentPlayMsec = value;
             SetSpeedCoroutine();
@@ -218,7 +192,7 @@ public class PracticeMode : IPlayerSettingsItem
 
         public static void Postfix(ref float __result)
         {
-            if (!IsPracticeModeEnabled() || !keepNoteSpeed) return;
+            if (!userEnable || !keepNoteSpeed) return;
             __result /= speed;
         }
     }
@@ -230,7 +204,6 @@ public class PracticeMode : IPlayerSettingsItem
         repeatStart = -1;
         repeatEnd = -1;
         speed = 1;
-        needsTimeSync = false;
         ui = null;
         
         ignoreScore = false;
@@ -254,7 +227,6 @@ public class PracticeMode : IPlayerSettingsItem
         repeatStart = -1;
         repeatEnd = -1;
         speed = 1;
-        needsTimeSync = false;
         ui = null;
     }
 
@@ -281,12 +253,12 @@ public class PracticeMode : IPlayerSettingsItem
     [HarmonyPostfix]
     public static void GameProcessPostUpdate(GameProcess __instance, GameMonitor[] ____monitors)
     {
-        if (GameManager.IsInGame && IsPracticeModeEnabled() && dontSaveScore && !ignoreScore)
+        if (GameManager.IsInGame && userEnable && dontSaveScore && !ignoreScore)
         {
             ignoreScore = true;
         }
 
-        if (!IsPracticeModeEnabled()) return;
+        if (!userEnable) return;
         
         if (KeyListener.GetKeyDownOrLongPress(key, longPress) && ui is null)
         {
@@ -332,7 +304,7 @@ public class PracticeMode : IPlayerSettingsItem
     [HarmonyPrefix]
     public static bool NotesManagerPostUpdateTimer(bool ____isPlaying, Stopwatch ____stopwatch, ref float ____curMSec, ref float ____curMSecPre, float ____msecStartGap)
     {
-        if (!IsPracticeModeEnabled())
+        if (!userEnable)
         {
             return true;
         }
@@ -404,21 +376,19 @@ public class PracticeMode : IPlayerSettingsItem
     
     public string GetOptionValue(int player)
     {
-        return userSettings[0] ? "ON" : "OFF";
+        return userEnable ? "ON" : "OFF";
     }
 
     public void AddOption(int player)
     {
-        userSettings[0] = true;
-        userSettings[1] = true;
+        userEnable = true;
         
         MessageHelper.ShowMessage(Locale.PracticeModeEnabled);
     }
 
     public void SubOption(int player)
     {
-        userSettings[0] = false;
-        userSettings[1] = false;
+        userEnable = false;
         
         MessageHelper.ShowMessage(Locale.PracticeModeDisabled);
     }
@@ -427,14 +397,7 @@ public class PracticeMode : IPlayerSettingsItem
     [HarmonyPatch(typeof(MusicSelectProcess), nameof(MusicSelectProcess.OnStart))]
     public static void LoadSettings()
     {
-        userSettings[0] = false;
-        userSettings[1] = false;
-    }
-
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(MusicSelectProcess), nameof(MusicSelectProcess.OnRelease))]
-    public static void SaveSettings()
-    {
+        userEnable = false;
     }
 
     [HarmonyPrefix]
@@ -508,31 +471,11 @@ public class PracticeMode : IPlayerSettingsItem
             labelStyle.alignment = TextAnchor.MiddleCenter;
 
             GUI.Box(rect, "");
-            GUI.Label(rect, IsPracticeModeEnabled() ? "练习模式开启中" : "练习模式曾开启过，本曲成绩不会被上传。");
+            GUI.Label(rect, userEnable ? "练习模式开启中" : "练习模式曾开启过，本曲成绩不会被上传。");
         }
     }
 
     private static ExternalPracticeModeUI externalUI;
-
-    [HarmonyPatch(typeof(GenericProcess), "OnUpdate")]
-    [HarmonyPostfix]
-    public static void GenericProcessOnUpdate(GenericMonitor[] ____monitors)
-    {
-        if (GameManager.IsInGame) return;
-        
-        if (KeyListener.GetKeyDownOrLongPress(externalKey, longPress))
-        {
-            userSettings[0] = !userSettings[0];
-            userSettings[1] = userSettings[0];
-            
-            MessageHelper.ShowMessage(userSettings[0] ? Locale.PracticeModeEnabled : Locale.PracticeModeDisabled);
-            
-            if (externalUI == null)
-            {
-                externalUI = ____monitors[0].gameObject.AddComponent<ExternalPracticeModeUI>();
-            }
-        }
-    }
 
     private class ExternalPracticeModeUI : MonoBehaviour
     {
@@ -562,7 +505,7 @@ public class PracticeMode : IPlayerSettingsItem
             labelStyle.alignment = TextAnchor.MiddleCenter;
 
             GUI.Box(rect, "");
-            GUI.Label(rect, IsPracticeModeEnabled() ? "练习模式已开启" : "练习模式已关闭");
+            GUI.Label(rect, userEnable ? "练习模式已开启" : "练习模式已关闭");
         }
     }
 }

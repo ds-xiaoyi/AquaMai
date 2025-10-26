@@ -172,4 +172,10 @@ Press {2} to switch block or exit adjustment mode</value>
     <data name="AutoplayWasUsed" xml:space="preserve">
         <value>Autoplay was used, score will not be saved.</value>
     </data>
+    <data name="PracticeModeEnabled" xml:space="preserve">
+        <value>Practice Mode Enabled</value>
+    </data>
+    <data name="PracticeModeDisabled" xml:space="preserve">
+        <value>Practice Mode Disabled</value>
+    </data>
 </root>

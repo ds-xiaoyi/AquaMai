@@ -57,8 +57,6 @@ public class PracticeMode
         }
 
         repeatEnd = time;
-        
-        needsTimeSync = true;
     }
 
     public static void ClearRepeat()
@@ -71,7 +69,14 @@ public class PracticeMode
     {
         if (player != null)
         {
-            player.SetPitch((float)(1200 * Math.Log(speed, 2)));
+            if (speed != 1)
+            {
+                player.SetPitch((float)(1200 * Math.Log(speed, 2)));
+            }
+            else
+            {
+                player.SetPitch(0);
+            }
             player.UpdateAll();
         }
 
@@ -103,6 +108,37 @@ public class PracticeMode
         SharedInstances.GameMainObject.StartCoroutine(SetSpeedCoroutineInner());
     }
     
+    public static void SetSpeedImmediate()
+    {
+        if (player != null)
+        {
+            if (speed != 1)
+            {
+                player.SetPitch((float)(1200 * Math.Log(speed, 2)));
+            }
+            else
+            {
+                player.SetPitch(0);
+            }
+            player.UpdateAll();
+        }
+        
+        if (movie != null && movie.player != null)
+        {
+            movie.player.SetSpeed(speed);
+        }
+        
+        if (gameCtrl != null)
+        {
+            try
+            {
+                gameCtrl.ResetOptionSpeed();
+            }
+            catch (System.Exception)
+            {
+            }
+        }
+    }
 
     public static void SpeedUp()
     {
@@ -110,11 +146,6 @@ public class PracticeMode
         if (speed > 2)
         {
             speed = 2;
-        }
-
-        if (speed != 1)
-        {
-            needsTimeSync = true;
         }
 
         SetSpeed();
@@ -128,11 +159,6 @@ public class PracticeMode
             speed = 0.05f;
         }
 
-        if (speed != 1)
-        {
-            needsTimeSync = true;
-        }
-
         SetSpeed();
     }
 
@@ -144,6 +170,7 @@ public class PracticeMode
 
     public static void Seek(int addMsec)
     {
+
         // Debug feature 里面那个 timer 不能感知变速
         // 为了和魔改版本统一，polyfill 里面不修这个
         // 这里重新实现一个能感知变速的 Seek
@@ -153,12 +180,7 @@ public class PracticeMode
             msec = 0;
         }
 
-        SeekTo(msec);
-    }
-
-    private static void SeekTo(double msec)
-    {
-        DebugFeature.CurrentPlayMsec = msec;
+        CurrentPlayMsec = msec;
     }
 
     [HarmonyPostfix]
@@ -179,7 +201,8 @@ public class PracticeMode
         get => NotesManager.GetCurrentMsec() - 91;
         set
         {
-            SeekTo(value);
+            DebugFeature.CurrentPlayMsec = value;
+            SetSpeedCoroutine();
         }
     }
 
@@ -209,8 +232,6 @@ public class PracticeMode
         repeatEnd = -1;
         speed = 1;
         ui = null;
-        needsTimeSync = false;
-        syncTime = -1f;
         
         if (player != null)
         {
@@ -232,8 +253,6 @@ public class PracticeMode
         repeatEnd = -1;
         speed = 1;
         ui = null;
-        needsTimeSync = false;
-        syncTime = -1f;
         
         if (player != null)
         {
@@ -324,23 +343,6 @@ public class PracticeMode
     }
 
 
-    public static bool needsTimeSync = false;
-    private static float syncTime = -1f;
-
-    private static void ApplySpeedToAudioVideo()
-    {
-        if (player != null)
-        {
-            player.SetPitch((float)(1200 * Math.Log(speed, 2)));
-            player.UpdateAll();
-        }
-        
-        if (movie != null && movie.player != null)
-        {
-            movie.player.SetSpeed(speed);
-        }
-    }
-
     [HarmonyPatch(typeof(NotesManager), "UpdateTimer")]
     [HarmonyPrefix]
     public static bool NotesManagerPostUpdateTimer(bool ____isPlaying, Stopwatch ____stopwatch, ref float ____curMSec, ref float ____curMSecPre, float ____msecStartGap)
@@ -350,48 +352,57 @@ public class PracticeMode
             return true;
         }
 
-        if (needsTimeSync)
-        {
-            syncTime = ____curMSec;
-            needsTimeSync = false;
-            if (____stopwatch != null && ____isPlaying && !____stopwatch.IsRunning)
-            {
-                ____stopwatch.Start();
-            }
-        }
-
         if (speed == 1 && repeatStart == -1 && repeatEnd == -1)
         {
             return true;
         }
-        
         if (startGap != -1f)
         {
             ____curMSec = startGap;
             ____curMSecPre = startGap;
             ____stopwatch?.Reset();
             startGap = -1f;
-            ApplySpeedToAudioVideo();
-        }
-        else if (syncTime != -1f)
-        {
-            ____curMSec = syncTime;
-            ____curMSecPre = syncTime;
-            syncTime = -1f;
             
-            if (____stopwatch != null && ____isPlaying && !____stopwatch.IsRunning)
+            if (player != null)
             {
-                ____stopwatch.Start();
+                if (speed != 1)
+                {
+                    player.SetPitch((float)(1200 * Math.Log(speed, 2)));
+                }
+                else
+                {
+                    player.SetPitch(0);
+                }
+                player.UpdateAll();
             }
             
-            ApplySpeedToAudioVideo();
+            if (movie != null && movie.player != null)
+            {
+                movie.player.SetSpeed(speed);
+            }
         }
         else
         {
             ____curMSecPre = ____curMSec;
             if (____isPlaying && ____stopwatch != null && !DebugFeature.Pause)
             {
-                ApplySpeedToAudioVideo();
+                if (player != null)
+                {
+                    if (speed != 1)
+                    {
+                        player.SetPitch((float)(1200 * Math.Log(speed, 2)));
+                    }
+                    else
+                    {
+                        player.SetPitch(0);
+                    }
+                    player.UpdateAll();
+                }
+                
+                if (movie != null && movie.player != null)
+                {
+                    movie.player.SetSpeed(speed);
+                }
                 
                 var originalDelta = (double)____stopwatch.ElapsedTicks / Stopwatch.Frequency * 1000.0;
                 

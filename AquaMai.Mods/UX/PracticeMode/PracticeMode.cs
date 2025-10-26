@@ -6,6 +6,7 @@ using System.Reflection;
 using AquaMai.Mods.Fix;
 using AquaMai.Core.Helpers;
 using AquaMai.Core.Resources;
+using AquaMai.Core.Types;
 using AquaMai.Mods.UX.PracticeMode.Libs;
 using HarmonyLib;
 using Manager;
@@ -16,6 +17,11 @@ using UnityEngine;
 using AquaMai.Config.Attributes;
 using AquaMai.Config.Types;
 using MelonLoader;
+using DB;
+using MAI2.Util;
+using Process.SubSequence;
+using UserOption = Manager.UserDatas.UserOption;
+using Manager.UserDatas;
 
 namespace AquaMai.Mods.UX.PracticeMode;
 
@@ -23,13 +29,37 @@ namespace AquaMai.Mods.UX.PracticeMode;
 [ConfigSection(
     en: "Practice Mode.",
     name: "练习模式")]
-public class PracticeMode
+public class PracticeMode : IPlayerSettingsItem
 {
+    [ConfigEntry(
+        name: "启用练习模式",
+        en: "Enable Practice Mode functionality. If disabled, Practice Mode will not take over the game.",
+        zh: "启用练习模式功能。如果关闭此选项，练习模式将不会接管游戏。")]
+    private static readonly bool EnablePracticeMode = true;
+
+    [ConfigEntry(
+        name: "练习模式激活后显示提示",
+        en: "Show notice when Practice Mode is activated",
+        zh: "练习模式激活后显示提示")]
+    public static readonly bool showNotice = true;
+
+    [ConfigEntry(
+        name: "练习模式时不保存成绩",
+        en: "Do not save scores when Practice Mode is used",
+        zh: "练习模式时不保存成绩")]
+    public static readonly bool dontSaveScore = true;
+
     [ConfigEntry(
         name: "按键",
         en: "Key to show Practice Mode UI.",
         zh: "显示练习模式 UI 的按键")]
     public static readonly KeyCodeOrName key = KeyCodeOrName.Test;
+
+    [ConfigEntry(
+        name: "按键",
+        en: "Key to toggle Practice Mode outside of game.",
+        zh: "开关练习模式的按键")]
+    public static readonly KeyCodeOrName externalKey = KeyCodeOrName.F12;
 
     [ConfigEntry]
     public static readonly bool longPress = false;
@@ -37,10 +67,26 @@ public class PracticeMode
     public static double repeatStart = -1;
     public static double repeatEnd = -1;
     public static float speed = 1;
+    public static bool needsTimeSync = false;
     private static CriAtomExPlayer player;
     private static MovieMaterialMai2 movie;
     public static GameCtrl gameCtrl;
     public static bool keepNoteSpeed = false;
+    
+    private static bool[] userSettings = [false, false];
+    private static IPersistentStorage storage = new PlayerPrefsStorage();
+    
+    public static bool ignoreScore = false;
+    private static UserScore oldScore;
+    private static uint currentTrackNumber => GameManager.MusicTrackNumber;
+    
+    private static bool GetUserSetting(uint monitorIndex) => userSettings[monitorIndex];
+    private static bool GetUserSetting(int monitorIndex) => GetUserSetting((uint)monitorIndex);
+    
+    private static bool IsPracticeModeEnabled()
+    {
+        return EnablePracticeMode && userSettings[0];
+    }
 
     public static void SetRepeatEnd(double time)
     {
@@ -57,39 +103,24 @@ public class PracticeMode
         }
 
         repeatEnd = time;
-        
-        needsTimeSync = true;
     }
 
     public static void ClearRepeat()
     {
         repeatStart = -1;
         repeatEnd = -1;
+        needsTimeSync = false;
     }
 
     public static void SetSpeed()
     {
-        if (player != null)
-        {
-            player.SetPitch((float)(1200 * Math.Log(speed, 2)));
-            player.UpdateAll();
-        }
-
-        if (movie != null && movie.player != null)
-        {
-            movie.player.SetSpeed(speed);
-        }
+        if (!IsPracticeModeEnabled()) return;
         
-        if (gameCtrl != null)
-        {
-            try
-            {
-                gameCtrl.ResetOptionSpeed();
-            }
-            catch (System.Exception)
-            {
-            }
-        }
+        player.SetPitch((float)(1200 * Math.Log(speed, 2)));
+        player.UpdateAll();
+
+        movie.player.SetSpeed(speed);
+        gameCtrl?.ResetOptionSpeed();
     }
 
     private static IEnumerator SetSpeedCoroutineInner()
@@ -102,7 +133,6 @@ public class PracticeMode
     {
         SharedInstances.GameMainObject.StartCoroutine(SetSpeedCoroutineInner());
     }
-    
 
     public static void SpeedUp()
     {
@@ -110,11 +140,6 @@ public class PracticeMode
         if (speed > 2)
         {
             speed = 2;
-        }
-
-        if (speed != 1)
-        {
-            needsTimeSync = true;
         }
 
         SetSpeed();
@@ -128,11 +153,6 @@ public class PracticeMode
             speed = 0.05f;
         }
 
-        if (speed != 1)
-        {
-            needsTimeSync = true;
-        }
-
         SetSpeed();
     }
 
@@ -144,6 +164,8 @@ public class PracticeMode
 
     public static void Seek(int addMsec)
     {
+        if (!IsPracticeModeEnabled()) return;
+        
         // Debug feature 里面那个 timer 不能感知变速
         // 为了和魔改版本统一，polyfill 里面不修这个
         // 这里重新实现一个能感知变速的 Seek
@@ -153,18 +175,15 @@ public class PracticeMode
             msec = 0;
         }
 
-        SeekTo(msec);
-    }
-
-    private static void SeekTo(double msec)
-    {
-        DebugFeature.CurrentPlayMsec = msec;
+        CurrentPlayMsec = msec;
     }
 
     [HarmonyPostfix]
     [HarmonyPatch(typeof(GameCtrl), "ForceNoteCollect")]
     private static void ForceNoteCollect(NotesManager ___NoteMng)
     {
+        if (!IsPracticeModeEnabled()) return;
+        
         foreach (NoteData note in ___NoteMng.getReader().GetNoteList())
         {
             if (note != null && note.type.isConnectSlide())
@@ -179,7 +198,10 @@ public class PracticeMode
         get => NotesManager.GetCurrentMsec() - 91;
         set
         {
-            SeekTo(value);
+            if (!IsPracticeModeEnabled()) return;
+            
+            DebugFeature.CurrentPlayMsec = value;
+            SetSpeedCoroutine();
         }
     }
 
@@ -196,31 +218,32 @@ public class PracticeMode
 
         public static void Postfix(ref float __result)
         {
-            if (!keepNoteSpeed) return;
+            if (!IsPracticeModeEnabled() || !keepNoteSpeed) return;
             __result /= speed;
         }
     }
 
     [HarmonyPatch(typeof(GameProcess), "OnStart")]
     [HarmonyPostfix]
-    public static void GameProcessPostStart()
+    public static void GameProcessPostStart(GameMonitor[] ____monitors)
     {
         repeatStart = -1;
         repeatEnd = -1;
         speed = 1;
-        ui = null;
         needsTimeSync = false;
-        syncTime = -1f;
+        ui = null;
         
-        if (player != null)
+        ignoreScore = false;
+        
+        if (externalUI != null)
         {
-            player.SetPitch(0);
-            player.UpdateAll();
+            UnityEngine.Object.Destroy(externalUI);
+            externalUI = null;
         }
         
-        if (movie != null && movie.player != null)
+        if (showNotice)
         {
-            movie.player.SetSpeed(1);
+            ____monitors[0].gameObject.AddComponent<PracticeModeNoticeUI>();
         }
     }
 
@@ -231,20 +254,8 @@ public class PracticeMode
         repeatStart = -1;
         repeatEnd = -1;
         speed = 1;
-        ui = null;
         needsTimeSync = false;
-        syncTime = -1f;
-        
-        if (player != null)
-        {
-            player.SetPitch(0);
-            player.UpdateAll();
-        }
-        
-        if (movie != null && movie.player != null)
-        {
-            movie.player.SetSpeed(1);
-        }
+        ui = null;
     }
 
     [HarmonyPatch(typeof(GameCtrl), "Initialize")]
@@ -270,6 +281,13 @@ public class PracticeMode
     [HarmonyPostfix]
     public static void GameProcessPostUpdate(GameProcess __instance, GameMonitor[] ____monitors)
     {
+        if (GameManager.IsInGame && IsPracticeModeEnabled() && dontSaveScore && !ignoreScore)
+        {
+            ignoreScore = true;
+        }
+
+        if (!IsPracticeModeEnabled()) return;
+        
         if (KeyListener.GetKeyDownOrLongPress(key, longPress) && ui is null)
         {
             ui = ____monitors[0].gameObject.AddComponent<PracticeModeUI>();
@@ -290,21 +308,7 @@ public class PracticeMode
     [HarmonyPostfix]
     public static void NotesManagerPostUpdateTimer(float msecStartGap)
     {
-#if DEBUG
-        MelonLogger.Msg($"[PracticeMode] NotesManager.StartPlay msecStartGap={msecStartGap}");
-#endif
         startGap = msecStartGap;
-        
-        if (player != null)
-        {
-            player.SetPitch(0);
-            player.UpdateAll();
-        }
-        
-        if (movie != null && movie.player != null)
-        {
-            movie.player.SetSpeed(1);
-        }
     }
 
     private static bool isInAdvDemo = false;
@@ -324,87 +328,34 @@ public class PracticeMode
     }
 
 
-    public static bool needsTimeSync = false;
-    private static float syncTime = -1f;
-
-    private static void ApplySpeedToAudioVideo()
-    {
-        if (player != null)
-        {
-            player.SetPitch((float)(1200 * Math.Log(speed, 2)));
-            player.UpdateAll();
-        }
-        
-        if (movie != null && movie.player != null)
-        {
-            movie.player.SetSpeed(speed);
-        }
-    }
-
     [HarmonyPatch(typeof(NotesManager), "UpdateTimer")]
     [HarmonyPrefix]
     public static bool NotesManagerPostUpdateTimer(bool ____isPlaying, Stopwatch ____stopwatch, ref float ____curMSec, ref float ____curMSecPre, float ____msecStartGap)
     {
+        if (!IsPracticeModeEnabled())
+        {
+            return true;
+        }
+        
         if (isInAdvDemo || GameManager.IsKaleidxScopeMode)
         {
             return true;
         }
 
-        if (needsTimeSync)
-        {
-            syncTime = ____curMSec;
-            needsTimeSync = false;
-            if (____stopwatch != null && ____isPlaying && !____stopwatch.IsRunning)
-            {
-                ____stopwatch.Start();
-            }
-        }
-
-        if (speed == 1 && repeatStart == -1 && repeatEnd == -1)
-        {
-            return true;
-        }
-        
         if (startGap != -1f)
         {
             ____curMSec = startGap;
             ____curMSecPre = startGap;
             ____stopwatch?.Reset();
             startGap = -1f;
-            ApplySpeedToAudioVideo();
-        }
-        else if (syncTime != -1f)
-        {
-            ____curMSec = syncTime;
-            ____curMSecPre = syncTime;
-            syncTime = -1f;
-            
-            if (____stopwatch != null && ____isPlaying && !____stopwatch.IsRunning)
-            {
-                ____stopwatch.Start();
-            }
-            
-            ApplySpeedToAudioVideo();
         }
         else
         {
             ____curMSecPre = ____curMSec;
             if (____isPlaying && ____stopwatch != null && !DebugFeature.Pause)
             {
-                ApplySpeedToAudioVideo();
-                
-                var originalDelta = (double)____stopwatch.ElapsedTicks / Stopwatch.Frequency * 1000.0;
-                
-                if (speed != 1)
-                {
-                    var practiceDelta = originalDelta * speed;
-                    ____curMSec += (float)practiceDelta;
-                }
-                else
-                {
-                    ____curMSec += (float)originalDelta;
-                }
-                
+                var num = (double)____stopwatch.ElapsedTicks / Stopwatch.Frequency * 1000.0 * speed;
+                ____curMSec += (float)num;
                 ____stopwatch.Reset();
                 ____stopwatch.Start();
             }
@@ -419,22 +370,6 @@ public class PracticeMode
     {
         var wrapper = ____players[2];
         player = (CriAtomExPlayer)wrapper.GetType().GetField("Player").GetValue(wrapper);
-        
-        if (player != null)
-        {
-            player.SetPitch(0);
-            player.UpdateAll();
-        }
-    }
-
-    [HarmonyPatch(typeof(MovieController), "Awake")]
-    [HarmonyPostfix]
-    public static void MovieControllerPostAwake(MovieMaterialMai2 ____moviePlayers)
-    {
-        movie = ____moviePlayers;
-    }
-
-
         // var pool = new CriAtomExStandardVoicePool(1, 8, 96000, true, 2);
         // pool.AttachDspTimeStretch();
         // player.SetVoicePoolIdentifier(pool.identifier);
@@ -446,5 +381,212 @@ public class PracticeMode
         // pool.AttachDspTimeStretch();
         // player1.SetVoicePoolIdentifier(pool.identifier);
         // player1.SetDspTimeStretchRatio(2);
-}
+    }
 
+    [HarmonyPatch(typeof(MovieController), "Awake")]
+    [HarmonyPostfix]
+    public static void MovieControllerPostAwake(MovieMaterialMai2 ____moviePlayers)
+    {
+        movie = ____moviePlayers;
+    }
+
+    #region 游戏内设置界面实现
+
+    public static void OnBeforePatch()
+    {
+        GameSettingsManager.RegisterSetting(new PracticeMode());
+    }
+
+    public int Sort => 60;
+    public bool IsLeftButtonActive => true;
+    public bool IsRightButtonActive => true;
+    public string Name => "练习模式";
+    public string Detail => "启用练习模式功能";
+    public string SpriteFile => "UI_OPT_E_23_06";
+    
+    public string GetOptionValue(int player)
+    {
+        return userSettings[0] ? "ON" : "OFF";
+    }
+
+    public void AddOption(int player)
+    {
+        userSettings[0] = true;
+        userSettings[1] = true;
+        
+        MessageHelper.ShowMessage(Locale.PracticeModeEnabled);
+    }
+
+    public void SubOption(int player)
+    {
+        userSettings[0] = false;
+        userSettings[1] = false;
+        
+        MessageHelper.ShowMessage(Locale.PracticeModeDisabled);
+    }
+
+    #endregion
+
+    #region 设置存储
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(MusicSelectProcess), nameof(MusicSelectProcess.OnStart))]
+    public static void LoadSettings()
+    {
+        userSettings[0] = false;
+        userSettings[1] = false;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(MusicSelectProcess), nameof(MusicSelectProcess.OnRelease))]
+    public static void SaveSettings()
+    {
+    }
+
+    #endregion
+
+    #region 成绩保存控制
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(UserData), "UpdateScore")]
+    public static bool BeforeUpdateScore(int musicid, int difficulty, uint achive, uint romVersion)
+    {
+        if (ignoreScore)
+        {
+            return false;
+        }
+        return true;
+    }
+
+    [HarmonyPrefix]
+    [HarmonyPatch(typeof(ResultProcess), "OnStart")]
+    [HarmonyPriority(HarmonyLib.Priority.High)]
+    public static bool BeforeResultProcessStart()
+    {
+        if (!ignoreScore)
+        {
+            return true;
+        }
+        var musicid = GameManager.SelectMusicID[0];
+        var difficulty = GameManager.SelectDifficultyID[0];
+        var userData = Singleton<UserDataManager>.Instance.GetUserData(0);
+        oldScore = JsonUtility.FromJson<UserScore>(JsonUtility.ToJson(userData.ScoreDic[difficulty].GetValueSafe(musicid)));
+        return true;
+    }
+
+    [HarmonyPostfix]
+    [HarmonyPatch(typeof(ResultProcess), "OnStart")]
+    [HarmonyPriority(HarmonyLib.Priority.High)]
+    public static void AfterResultProcessStart()
+    {
+        if (!ignoreScore)
+        {
+            return;
+        }
+        ignoreScore = false;
+        var musicid = GameManager.SelectMusicID[0];
+        var difficulty = GameManager.SelectDifficultyID[0];
+        var score = Singleton<GamePlayManager>.Instance.GetGameScore(0, (int)currentTrackNumber - 1);
+        typeof(GameScoreList).GetProperty("Achivement", BindingFlags.Public | BindingFlags.Instance)?.GetSetMethod(true)?.Invoke(score, [0m]);
+        typeof(GameScoreList).GetProperty("ComboType", BindingFlags.Public | BindingFlags.Instance)?.GetSetMethod(true)?.Invoke(score, [PlayComboflagID.None]);
+        typeof(GameScoreList).GetProperty("NowComboType", BindingFlags.Public | BindingFlags.Instance)?.GetSetMethod(true)?.Invoke(score, [PlayComboflagID.None]);
+        score.SyncType = PlaySyncflagID.None;
+        var userData = Singleton<UserDataManager>.Instance.GetUserData(0);
+        var userScoreDict = userData.ScoreDic[difficulty];
+        if (oldScore != null)
+        {
+            userScoreDict[musicid] = oldScore;
+        }
+        else
+        {
+            userScoreDict.Remove(musicid);
+        }
+    }
+
+    #endregion
+
+    #region 提示UI
+
+    private class PracticeModeNoticeUI : MonoBehaviour
+    {
+        public void OnGUI()
+        {
+            if (!ignoreScore) return;
+            var y = Screen.height * .075f;
+            var width = GuiSizes.FontSize * 20f;
+            var x = GuiSizes.PlayerCenter + GuiSizes.PlayerWidth / 2f - width;
+            var rect = new Rect(x, y, width, GuiSizes.LabelHeight * 2.5f);
+
+            var labelStyle = GUI.skin.GetStyle("label");
+            labelStyle.fontSize = (int)(GuiSizes.FontSize * 1.2);
+            labelStyle.alignment = TextAnchor.MiddleCenter;
+
+            GUI.Box(rect, "");
+            GUI.Label(rect, IsPracticeModeEnabled() ? "练习模式开启中" : "练习模式曾开启过，本曲成绩不会被上传。");
+        }
+    }
+
+    #endregion
+
+    #region 游戏外按键控制
+
+    private static ExternalPracticeModeUI externalUI;
+
+    [HarmonyPatch(typeof(GenericProcess), "OnUpdate")]
+    [HarmonyPostfix]
+    public static void GenericProcessOnUpdate(GenericMonitor[] ____monitors)
+    {
+        if (GameManager.IsInGame) return;
+        
+        if (KeyListener.GetKeyDownOrLongPress(externalKey, longPress))
+        {
+            userSettings[0] = !userSettings[0];
+            userSettings[1] = userSettings[0];
+            
+            MessageHelper.ShowMessage(userSettings[0] ? Locale.PracticeModeEnabled : Locale.PracticeModeDisabled);
+            
+            if (externalUI == null)
+            {
+                externalUI = ____monitors[0].gameObject.AddComponent<ExternalPracticeModeUI>();
+            }
+        }
+    }
+
+    #endregion
+
+    #region 外部UI
+
+    private class ExternalPracticeModeUI : MonoBehaviour
+    {
+        private float displayTime = 2.0f;
+        private float startTime;
+
+        public void Start()
+        {
+            startTime = Time.time;
+        }
+
+        public void OnGUI()
+        {
+            if (Time.time - startTime > displayTime)
+            {
+                Destroy(this);
+                return;
+            }
+
+            var y = Screen.height * .075f;
+            var width = GuiSizes.FontSize * 20f;
+            var x = GuiSizes.PlayerCenter + GuiSizes.PlayerWidth / 2f - width;
+            var rect = new Rect(x, y, width, GuiSizes.LabelHeight * 2.5f);
+
+            var labelStyle = GUI.skin.GetStyle("label");
+            labelStyle.fontSize = (int)(GuiSizes.FontSize * 1.2);
+            labelStyle.alignment = TextAnchor.MiddleCenter;
+
+            GUI.Box(rect, "");
+            GUI.Label(rect, IsPracticeModeEnabled() ? "练习模式已开启" : "练习模式已关闭");
+        }
+    }
+
+    #endregion
+}

@@ -390,8 +390,6 @@ public class PracticeMode : IPlayerSettingsItem
         movie = ____moviePlayers;
     }
 
-    #region 游戏内设置界面实现
-
     public static void OnBeforePatch()
     {
         GameSettingsManager.RegisterSetting(new PracticeMode());
@@ -425,10 +423,6 @@ public class PracticeMode : IPlayerSettingsItem
         MessageHelper.ShowMessage(Locale.PracticeModeDisabled);
     }
 
-    #endregion
-
-    #region 设置存储
-
     [HarmonyPostfix]
     [HarmonyPatch(typeof(MusicSelectProcess), nameof(MusicSelectProcess.OnStart))]
     public static void LoadSettings()
@@ -442,10 +436,6 @@ public class PracticeMode : IPlayerSettingsItem
     public static void SaveSettings()
     {
     }
-
-    #endregion
-
-    #region 成绩保存控制
 
     [HarmonyPrefix]
     [HarmonyPatch(typeof(UserData), "UpdateScore")]
@@ -503,10 +493,6 @@ public class PracticeMode : IPlayerSettingsItem
         }
     }
 
-    #endregion
-
-    #region 提示UI
-
     private class PracticeModeNoticeUI : MonoBehaviour
     {
         public void OnGUI()
@@ -525,10 +511,6 @@ public class PracticeMode : IPlayerSettingsItem
             GUI.Label(rect, IsPracticeModeEnabled() ? "练习模式开启中" : "练习模式曾开启过，本曲成绩不会被上传。");
         }
     }
-
-    #endregion
-
-    #region 游戏外按键控制
 
     private static ExternalPracticeModeUI externalUI;
 
@@ -551,10 +533,6 @@ public class PracticeMode : IPlayerSettingsItem
             }
         }
     }
-
-    #endregion
-
-    #region 外部UI
 
     private class ExternalPracticeModeUI : MonoBehaviour
     {
@@ -587,6 +565,4 @@ public class PracticeMode : IPlayerSettingsItem
             GUI.Label(rect, IsPracticeModeEnabled() ? "练习模式已开启" : "练习模式已关闭");
         }
     }
-
-    #endregion
 }

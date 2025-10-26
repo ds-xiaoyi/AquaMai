@@ -499,5 +499,23 @@ namespace AquaMai.Core.Resources {
                 return ResourceManager.GetString("UserGhostAchievement", resourceCulture);
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Practice Mode Disabled.
+        /// </summary>
+        public static string PracticeModeDisabled {
+            get {
+                return ResourceManager.GetString("PracticeModeDisabled", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Practice Mode Enabled.
+        /// </summary>
+        public static string PracticeModeEnabled {
+            get {
+                return ResourceManager.GetString("PracticeModeEnabled", resourceCulture);
+            }
+        }
     }
 }

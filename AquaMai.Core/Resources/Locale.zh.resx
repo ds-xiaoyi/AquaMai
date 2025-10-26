@@ -165,4 +165,10 @@
     <data name="AutoplayWasUsed" xml:space="preserve">
         <value>Autoplay曾开启过，本曲成绩不会被上传。</value>
     </data>
+    <data name="PracticeModeEnabled" xml:space="preserve">
+        <value>练习模式已开启</value>
+    </data>
+    <data name="PracticeModeDisabled" xml:space="preserve">
+        <value>练习模式已关闭</value>
+    </data>
 </root>

@@ -13,6 +13,7 @@ using MelonLoader;
 using Monitor;
 using Process;
 using UnityEngine;
+using PracticeModeClass = AquaMai.Mods.UX.PracticeMode.PracticeMode;
 
 namespace AquaMai.Mods.UX;
 
@@ -28,6 +29,7 @@ public class DontRuinMyAccount
     private static uint currentTrackNumber => GameManager.MusicTrackNumber;
     public static bool ignoreScore;
     private static UserScore oldScore;
+    private static UserScore practiceModeOldScore;
 
     [HarmonyPatch(typeof(GameProcess), "OnUpdate")]
     [HarmonyPostfix]
@@ -68,7 +70,7 @@ public class DontRuinMyAccount
     [HarmonyPatch(typeof(UserData), "UpdateScore")]
     public static bool BeforeUpdateScore(int musicid, int difficulty, uint achive, uint romVersion)
     {
-        if (ignoreScore)
+        if (ignoreScore || PracticeModeClass.ignoreScore)
         {
             MelonLogger.Msg("[DontRuinMyAccount] Prevented update DXRating: trackNo {0}, music {1}:{2}, achievement {3}", currentTrackNumber, musicid, difficulty, achive);
             return false;
@@ -81,7 +83,7 @@ public class DontRuinMyAccount
     [HarmonyPriority(HarmonyLib.Priority.High)]
     public static bool BeforeResultProcessStart()
     {
-        if (!ignoreScore)
+        if (!ignoreScore && !PracticeModeClass.ignoreScore)
         {
             return true;
         }
@@ -89,8 +91,16 @@ public class DontRuinMyAccount
         var difficulty = GameManager.SelectDifficultyID[0];
         var userData = Singleton<UserDataManager>.Instance.GetUserData(0);
         // deepcopy
-        oldScore = JsonUtility.FromJson<UserScore>(JsonUtility.ToJson(userData.ScoreDic[difficulty].GetValueSafe(musicid)));
-        MelonLogger.Msg("[DontRuinMyAccount] Stored old score: trackNo {0}, music {1}:{2}, achievement {3}", currentTrackNumber, musicid, difficulty, oldScore?.achivement);
+        if (ignoreScore)
+        {
+            oldScore = JsonUtility.FromJson<UserScore>(JsonUtility.ToJson(userData.ScoreDic[difficulty].GetValueSafe(musicid)));
+            MelonLogger.Msg("[DontRuinMyAccount] Stored old score: trackNo {0}, music {1}:{2}, achievement {3}", currentTrackNumber, musicid, difficulty, oldScore?.achivement);
+        }
+        if (PracticeModeClass.ignoreScore)
+        {
+            practiceModeOldScore = JsonUtility.FromJson<UserScore>(JsonUtility.ToJson(userData.ScoreDic[difficulty].GetValueSafe(musicid)));
+            MelonLogger.Msg("[DontRuinMyAccount] Stored practice mode old score: trackNo {0}, music {1}:{2}, achievement {3}", currentTrackNumber, musicid, difficulty, practiceModeOldScore?.achivement);
+        }
         return true;
     }
 
@@ -99,11 +109,11 @@ public class DontRuinMyAccount
     [HarmonyPriority(HarmonyLib.Priority.High)]
     public static void AfterResultProcessStart()
     {
-        if (!ignoreScore)
+        if (!ignoreScore && !PracticeModeClass.ignoreScore)
         {
             return;
         }
-        ignoreScore = false;
+        
         var musicid = GameManager.SelectMusicID[0];
         var difficulty = GameManager.SelectDifficultyID[0];
         // current music playlog
@@ -116,16 +126,36 @@ public class DontRuinMyAccount
         // user's all scores
         var userData = Singleton<UserDataManager>.Instance.GetUserData(0);
         var userScoreDict = userData.ScoreDic[difficulty];
-        if (oldScore != null)
+        
+        if (ignoreScore)
         {
-            userScoreDict[musicid] = oldScore;
+            ignoreScore = false;
+            if (oldScore != null)
+            {
+                userScoreDict[musicid] = oldScore;
+            }
+            else
+            {
+                userScoreDict.Remove(musicid);
+            }
+            MelonLogger.Msg("[DontRuinMyAccount] Reset scores: trackNo {0}, music {1}:{2}, set current music playlog to 0.0000%, and userScoreDict[{1}:{2}] to {3}", currentTrackNumber,
+                musicid, difficulty, oldScore?.achivement);
         }
-        else
+        
+        if (PracticeModeClass.ignoreScore)
         {
-            userScoreDict.Remove(musicid);
+            PracticeModeClass.ignoreScore = false;
+            if (practiceModeOldScore != null)
+            {
+                userScoreDict[musicid] = practiceModeOldScore;
+            }
+            else
+            {
+                userScoreDict.Remove(musicid);
+            }
+            MelonLogger.Msg("[DontRuinMyAccount] Reset practice mode scores: trackNo {0}, music {1}:{2}, set current music playlog to 0.0000%, and userScoreDict[{1}:{2}] to {3}", currentTrackNumber,
+                musicid, difficulty, practiceModeOldScore?.achivement);
         }
-        MelonLogger.Msg("[DontRuinMyAccount] Reset scores: trackNo {0}, music {1}:{2}, set current music playlog to 0.0000%, and userScoreDict[{1}:{2}] to {3}", currentTrackNumber,
-            musicid, difficulty, oldScore?.achivement);
     }
 
     [HarmonyPostfix]
@@ -134,6 +164,8 @@ public class DontRuinMyAccount
     {
         // For compatibility with QuickRetry
         ignoreScore = false;
+        oldScore = null;
+        practiceModeOldScore = null;
     }
 
     private class NoticeUI : MonoBehaviour

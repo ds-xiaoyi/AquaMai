@@ -58,9 +58,9 @@ public class PracticeMode : IPlayerSettingsItem
     public static bool keepNoteSpeed = false;
     
     private static bool userEnable;
+    public static bool hasUsedPracticeMode = false;
     
     public static bool ignoreScore = false;
-    private static UserScore oldScore;
     private static uint currentTrackNumber => GameManager.MusicTrackNumber;
     
     public static void SetRepeatEnd(double time)
@@ -116,6 +116,7 @@ public class PracticeMode : IPlayerSettingsItem
             speed = 2;
         }
 
+        hasUsedPracticeMode = true;
         SetSpeed();
     }
 
@@ -127,6 +128,7 @@ public class PracticeMode : IPlayerSettingsItem
             speed = 0.05f;
         }
 
+        hasUsedPracticeMode = true;
         SetSpeed();
     }
 
@@ -149,6 +151,7 @@ public class PracticeMode : IPlayerSettingsItem
             msec = 0;
         }
 
+        hasUsedPracticeMode = true;
         CurrentPlayMsec = msec;
     }
 
@@ -207,12 +210,7 @@ public class PracticeMode : IPlayerSettingsItem
         ui = null;
         
         ignoreScore = false;
-        
-        if (externalUI != null)
-        {
-            UnityEngine.Object.Destroy(externalUI);
-            externalUI = null;
-        }
+        hasUsedPracticeMode = false;
         
         if (showNotice)
         {
@@ -253,16 +251,16 @@ public class PracticeMode : IPlayerSettingsItem
     [HarmonyPostfix]
     public static void GameProcessPostUpdate(GameProcess __instance, GameMonitor[] ____monitors)
     {
-        if (GameManager.IsInGame && userEnable && dontSaveScore && !ignoreScore)
-        {
-            ignoreScore = true;
-        }
-
         if (!userEnable) return;
         
         if (KeyListener.GetKeyDownOrLongPress(key, longPress) && ui is null)
         {
             ui = ____monitors[0].gameObject.AddComponent<PracticeModeUI>();
+        }
+
+        if (hasUsedPracticeMode && dontSaveScore && !ignoreScore)
+        {
+            ignoreScore = true;
         }
 
         if (repeatStart >= 0 && repeatEnd >= 0)
@@ -309,7 +307,7 @@ public class PracticeMode : IPlayerSettingsItem
             return true;
         }
         
-        if (isInAdvDemo || GameManager.IsKaleidxScopeMode)
+		if (isInAdvDemo || GameManager.IsKaleidxScopeMode)
         {
             return true;
         }
@@ -397,63 +395,7 @@ public class PracticeMode : IPlayerSettingsItem
     [HarmonyPatch(typeof(MusicSelectProcess), nameof(MusicSelectProcess.OnStart))]
     public static void LoadSettings()
     {
-        userEnable = false;
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(UserData), "UpdateScore")]
-    public static bool BeforeUpdateScore(int musicid, int difficulty, uint achive, uint romVersion)
-    {
-        if (ignoreScore)
-        {
-            return false;
-        }
-        return true;
-    }
-
-    [HarmonyPrefix]
-    [HarmonyPatch(typeof(ResultProcess), "OnStart")]
-    [HarmonyPriority(HarmonyLib.Priority.High)]
-    public static bool BeforeResultProcessStart()
-    {
-        if (!ignoreScore)
-        {
-            return true;
-        }
-        var musicid = GameManager.SelectMusicID[0];
-        var difficulty = GameManager.SelectDifficultyID[0];
-        var userData = Singleton<UserDataManager>.Instance.GetUserData(0);
-        oldScore = JsonUtility.FromJson<UserScore>(JsonUtility.ToJson(userData.ScoreDic[difficulty].GetValueSafe(musicid)));
-        return true;
-    }
-
-    [HarmonyPostfix]
-    [HarmonyPatch(typeof(ResultProcess), "OnStart")]
-    [HarmonyPriority(HarmonyLib.Priority.High)]
-    public static void AfterResultProcessStart()
-    {
-        if (!ignoreScore)
-        {
-            return;
-        }
-        ignoreScore = false;
-        var musicid = GameManager.SelectMusicID[0];
-        var difficulty = GameManager.SelectDifficultyID[0];
-        var score = Singleton<GamePlayManager>.Instance.GetGameScore(0, (int)currentTrackNumber - 1);
-        typeof(GameScoreList).GetProperty("Achivement", BindingFlags.Public | BindingFlags.Instance)?.GetSetMethod(true)?.Invoke(score, [0m]);
-        typeof(GameScoreList).GetProperty("ComboType", BindingFlags.Public | BindingFlags.Instance)?.GetSetMethod(true)?.Invoke(score, [PlayComboflagID.None]);
-        typeof(GameScoreList).GetProperty("NowComboType", BindingFlags.Public | BindingFlags.Instance)?.GetSetMethod(true)?.Invoke(score, [PlayComboflagID.None]);
-        score.SyncType = PlaySyncflagID.None;
-        var userData = Singleton<UserDataManager>.Instance.GetUserData(0);
-        var userScoreDict = userData.ScoreDic[difficulty];
-        if (oldScore != null)
-        {
-            userScoreDict[musicid] = oldScore;
-        }
-        else
-        {
-            userScoreDict.Remove(musicid);
-        }
+        hasUsedPracticeMode = false;
     }
 
     private class PracticeModeNoticeUI : MonoBehaviour
@@ -472,40 +414,6 @@ public class PracticeMode : IPlayerSettingsItem
 
             GUI.Box(rect, "");
             GUI.Label(rect, userEnable ? "练习模式开启中" : "练习模式曾开启过，本曲成绩不会被上传。");
-        }
-    }
-
-    private static ExternalPracticeModeUI externalUI;
-
-    private class ExternalPracticeModeUI : MonoBehaviour
-    {
-        private float displayTime = 2.0f;
-        private float startTime;
-
-        public void Start()
-        {
-            startTime = Time.time;
-        }
-
-        public void OnGUI()
-        {
-            if (Time.time - startTime > displayTime)
-            {
-                Destroy(this);
-                return;
-            }
-
-            var y = Screen.height * .075f;
-            var width = GuiSizes.FontSize * 20f;
-            var x = GuiSizes.PlayerCenter + GuiSizes.PlayerWidth / 2f - width;
-            var rect = new Rect(x, y, width, GuiSizes.LabelHeight * 2.5f);
-
-            var labelStyle = GUI.skin.GetStyle("label");
-            labelStyle.fontSize = (int)(GuiSizes.FontSize * 1.2);
-            labelStyle.alignment = TextAnchor.MiddleCenter;
-
-            GUI.Box(rect, "");
-            GUI.Label(rect, userEnable ? "练习模式已开启" : "练习模式已关闭");
         }
     }
 }
